@@ -50,7 +50,7 @@
             "@php artisan test"
         ],
         "test:coverage": [
-            "@php artisan test --coverage --min=85"
+            "@php artisan test --coverage --min=93"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

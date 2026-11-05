@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Console\SchemaMysql;
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
 
 class ImportLegacySchema extends Command
 {
@@ -11,7 +11,7 @@ class ImportLegacySchema extends Command
 
     protected $description = 'Load the structure-only legacy tables into the configured database';
 
-    public function handle(): int
+    public function handle(SchemaMysql $mysql): int
     {
         $database = (string) config('database.connections.mysql.database');
 
@@ -44,22 +44,9 @@ class ImportLegacySchema extends Command
             return self::FAILURE;
         }
 
-        $command = [
-            'mysql',
-            '--user='.config('database.connections.mysql.username'),
-            '--password='.config('database.connections.mysql.password'),
-            '--host='.config('database.connections.mysql.host'),
-            '--port='.config('database.connections.mysql.port'),
-            $database,
-        ];
-
-        $process = new Process($command);
-        $process->setInput(file_get_contents($file));
-        $process->setTimeout(120);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            $this->error(trim($process->getErrorOutput()) ?: 'mysql import failed.');
+        $result = $mysql->import($database, (string) file_get_contents($file));
+        if (! $result['ok']) {
+            $this->error($result['error'] !== '' ? $result['error'] : 'mysql import failed.');
 
             return self::FAILURE;
         }

@@ -2,7 +2,7 @@
 
 PHPUnit covers `app/`. Playwright covers the browser journeys in `tests/e2e`. Neither suite calls a real payment provider or uses a live customer record. Gateway HTTP is faked. The database is `paysomeone_test` from `phpunit.xml`.
 
-PCOV (`php8.3-pcov`) is the coverage driver. `pcov.enabled` must be on. There is no GitHub Actions workflow in this repo, so the gate is the Composer script, which fails if line coverage on `app/` drops under 85%.
+PCOV (`php8.3-pcov`) is the coverage driver. There is no GitHub Actions workflow in this repo. The gate is Composer:
 
 ```bash
 php artisan test
@@ -10,57 +10,60 @@ composer test:coverage
 npx playwright test
 ```
 
-`composer test:coverage` runs `php artisan test --coverage --min=85`.
+`composer test:coverage` runs `php artisan test --coverage --min=93`.
 
-## Baseline, 5 November 2026
+## Before this follow-up
 
-Measured with `php artisan test --coverage-clover` before the tests added for this pass. 45 tests, 292 assertions.
-
-| Area | Covered | Statements | Line coverage |
-|---|---:|---:|---:|
-| app/ overall | 1,849 | 3,466 | 53.3% |
-| Auth | 25 | 42 | 59.5% |
-| Console | 0 | 33 | 0.0% |
-| Events | 1 | 1 | 100% |
-| Exceptions | 1 | 1 | 100% |
-| Filament | 5 | 38 | 13.2% |
-| Http | 486 | 1,370 | 35.5% |
-| Jobs | 21 | 23 | 91.3% |
-| Models | 221 | 363 | 60.9% |
-| Providers | 104 | 107 | 97.2% |
-| Services | 911 | 1,406 | 64.8% |
-| Support | 74 | 82 | 90.2% |
-
-## After this pass
-
-Measured the same way. 71 tests, 561 assertions. Two small production fixes (a failed M-Pesa login now marks the intent failed, and a fine without an order id no longer reads a missing array key) added two statements, so the denominator is 3,468.
+Measured on 5 November 2026, after the pass that first crossed 85%. 71 tests, 561 assertions.
 
 | Area | Covered | Statements | Line coverage |
 |---|---:|---:|---:|
 | app/ overall | 2,988 | 3,468 | 86.16% |
-| Auth | 37 | 42 | 88.1% |
-| Console | 9 | 33 | 27.3% |
-| Events | 1 | 1 | 100% |
-| Exceptions | 1 | 1 | 100% |
 | Filament | 16 | 38 | 42.1% |
-| Http | 1,214 | 1,370 | 88.6% |
-| Jobs | 21 | 23 | 91.3% |
+| Console | 9 | 33 | 27.3% |
 | Models | 271 | 363 | 74.7% |
-| Providers | 104 | 107 | 97.2% |
-| Services | 1,238 | 1,408 | 87.9% |
 | Services/Payments | 539 | 650 | 82.9% |
-| Services/Pricing | 295 | 315 | 93.7% |
-| Services/Office | 93 | 104 | 89.4% |
-| Services/Orders | 183 | 200 | 91.5% |
 | Http/Controllers/Office | 623 | 746 | 83.5% |
-| Http controllers outside the office | 562 | 594 | 94.6% |
+| Http | 1,214 | 1,370 | 88.6% |
+| Services | 1,238 | 1,408 | 87.9% |
+
+## After this follow-up
+
+`php artisan test --coverage-clover` on 5 November 2026. 81 tests, 738 assertions. `composer test:coverage` (`--min=93`) exited 0.
+
+| Area | Covered | Statements | Line coverage |
+|---|---:|---:|---:|
+| app/ overall | 3,234 | 3,476 | 93.04% |
+| Filament | 39 | 41 | 95.1% |
+| Console | 40 | 40 | 100% |
+| Models | 295 | 361 | 81.7% |
+| Models, excluding eight unused classes | 295 | 322 | 91.6% |
+| Services/Payments | 588 | 650 | 90.5% |
+| Http/Controllers/Office | 733 | 746 | 98.3% |
+| Http | 1,328 | 1,370 | 96.9% |
+| Services | 1,292 | 1,408 | 91.8% |
 | Auth | 37 | 42 | 88.1% |
+| Jobs | 21 | 23 | 91.3% |
+| Providers | 104 | 107 | 97.2% |
+| Support | 76 | 82 | 92.7% |
 
-`composer test:coverage` exited 0 against the 86.16% figure.
+The statement count moved from 3,468 to 3,476 because the importer now delegates the mysql process to `App\Console\SchemaMysql` (so tests can substitute a process) and the journal edit page gained a delete action.
 
-## Still under 85%, and why
+## Still under the area target
 
-- **Console (27.3%).** `legacy:import-schema` stops when `prox_customer` already exists, and it refuses the live database name. The branch that pipes the SQL file into `mysql` is not run, because that would rebuild the test schema.
-- **Filament (42.1%).** The journal resource's form and table are Filament builders. They are not booted in these HTTP tests. The studio count widget is.
-- **Models (74.7%).** What remains is mostly unused relation methods on legacy tables the desk does not write (schedules, extra services, PayPal's staging row). Relations that the new tests save are asserted.
-- **Services/Payments (82.9%) and the office controllers (83.5%).** The overall `app/` figure is over 85%. What is left is PayPal's capture-already-paid and refund-webhook branches, a few Stripe safe-mode returns, and office screens that repeat the same permission check. They are not untested paths of a different kind. They were not filled with assertions that only execute a line.
+**Models, 81.7% against an 85% aim.** The gap is unused legacy code, not skipped behaviour. These classes are never referenced outside their own file (39 statements, all uncovered):
+
+- `AdditionalService`
+- `CustomerWallet` (the desk uses `prox_customer.wallet_balance`, not this table)
+- `ItemPricing`
+- `OrderMeta`
+- `OrderPdSchedule`
+- `PaymentRequestOrder`
+- `PaypalPayment` (PayPal receipts are written to `prox_payment`)
+- `User` (customers and staff are `prox_customer` and `prox_employee`)
+
+Unused relation methods left on otherwise-used models, also not called from app code: `AuditLog::employee`, `Configuration::site`, `Coupon::order`, `Customer::site`, `Customer::wallet`, `Deadline::site`, `Deadline::academicLevel`, `Discipline::prices`, `Employee::pool`, `Employee::editingOrders`, `Employee::bids`, `Employee::fines`, `Order::site`, `Order::currency`, `Order::requestedWriter`, `Order::coupon`, `Order::metas`, `Order::schedules`, `Order::additionalServices`, `OrderEmployee::order`, `OrderTip::order`, `PaymentRequest::lines`, `Site::configurations`, `Site::deadlines`, `WalletTransaction::currency`.
+
+Excluding the eight unused classes, model line coverage is 91.6% (295/322). Relations the desk and office actually load (order files, messages, bids, writer, editor, deadline, ratings, wallet transactions, payment intent to order) are asserted.
+
+Everything else in the requested set is on target: Filament 95.1%, console importer 100% with a mocked process (no SQL is imported), payments 90.5%, office controllers 98.3%.

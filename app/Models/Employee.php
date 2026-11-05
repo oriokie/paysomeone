@@ -74,10 +74,6 @@ class Employee extends Authenticatable implements FilamentUser, HasName
             return false;
         }
 
-        if ($this->two_factor_enabled) {
-            return false;
-        }
-
         return in_array((int) $this->employee_group, [self::GROUP_ADMIN, self::GROUP_SUB_ADMIN], true);
     }
 
