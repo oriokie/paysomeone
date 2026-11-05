@@ -9,9 +9,9 @@ The current website can keep running while this one is tested on a subdomain suc
 | Piece | What it is |
 | --- | --- |
 | Public site | The pages a client sees: home, services, pricing, the order form, reviews, journal, sign-in. |
-| Staff office | A private area at `/office` for administrators. Journal posts can be edited here. Writers and payouts come in a later release. |
+| Staff office | `/office` for admins, sub-admins, editors, and writers. Two-factor is required. Journal editing stays at `/studio`. |
 | Existing database | The tables that already start with `prox_`. Customers, orders, writers, prices, payments, and wallets live there. This project does not change those tables. |
-| New tables | A few tables that start with `app_`. They hold the journal, contact messages, saved briefs, and password-reset links. They are added beside the old tables. They do not replace them. |
+| New tables | Tables that start with `app_`. They hold the journal, contact messages, saved briefs, password-reset links, the permission matrix, the audit log, and gateway display settings. They sit beside the old tables. |
 
 ## Safety switches
 
@@ -121,7 +121,14 @@ Emails use the text already stored in `prox_mail_template`. They are queued. Whi
 
 The staff and writer office is at `/office`. Roles come from `prox_employee.employee_group`. Two-factor sign-in is required. See [docs/office.md](docs/office.md). The journal editor remains at `/studio` for admins, after the same two-factor session. There is no impersonation.
 
+Browser journeys (Playwright, system Chrome) against a local server with writes on and safe mode on:
+
+```bash
+npx playwright test
+```
+
+Seed data for that run is `Database\Seeders\E2eSeeder`. It refuses the live database name.
+
 ## What comes next
 
-1. **Staff office for the daily work.** Bids, assignments, fines, and writer payouts, including M-Pesa. Administrators and sub-administrators only, with the same password check. No impersonation link. Listen for `DeskEvent`.
-2. **Cut-over.** Pause the current site, set `READ_ONLY_LEGACY=false` here, file one test order, pay it in the sandbox, confirm it in the current office, then point the main domain at this site. Leave the old files in place until you are sure.
+Cut-over. Pause the current site, set `READ_ONLY_LEGACY=false` here, file one test order, pay it in the sandbox, confirm it in the current office, then point the main domain at this site. Leave the old files in place until you are sure. Daraja B2C sends only when safe mode is off and the initiator credentials are set. `MPESA_B2C_MOCK=true` marks a sandbox payout without calling Safaricom.

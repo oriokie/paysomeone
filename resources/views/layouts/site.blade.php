@@ -75,21 +75,21 @@
                 <p class="mt-4 max-w-sm text-sm leading-7 text-white/70">A writing studio for companies and professionals. Articles, editing, rewriting, business documents, and resumes.</p>
             </div>
             <div class="text-sm leading-8 text-white/80 md:col-span-3">
-                <p class="text-xs font-semibold tracking-[0.16em] text-accent-bright uppercase">Work</p>
+                <p class="text-xs font-semibold tracking-[0.16em] text-white/80 uppercase">Work</p>
                 <a class="block hover:text-white" href="{{ route('services') }}">Services</a>
                 <a class="block hover:text-white" href="{{ route('pricing') }}">Pricing</a>
                 <a class="block hover:text-white" href="{{ route('order.create') }}">Start a brief</a>
                 <a class="block hover:text-white" href="{{ route('reviews') }}">Reviews</a>
             </div>
             <div class="text-sm leading-8 text-white/80 md:col-span-2">
-                <p class="text-xs font-semibold tracking-[0.16em] text-accent-bright uppercase">Studio</p>
+                <p class="text-xs font-semibold tracking-[0.16em] text-white/80 uppercase">Studio</p>
                 <a class="block hover:text-white" href="{{ route('about') }}">About</a>
                 <a class="block hover:text-white" href="{{ route('faq') }}">FAQ</a>
                 <a class="block hover:text-white" href="{{ route('contact') }}">Contact</a>
                 <a class="block hover:text-white" href="{{ route('blog.index') }}">Journal</a>
             </div>
             <div class="text-sm leading-8 text-white/80 md:col-span-2">
-                <p class="text-xs font-semibold tracking-[0.16em] text-accent-bright uppercase">Legal</p>
+                <p class="text-xs font-semibold tracking-[0.16em] text-white/80 uppercase">Legal</p>
                 <a class="block hover:text-white" href="{{ route('legal', 'terms') }}">Terms</a>
                 <a class="block hover:text-white" href="{{ route('legal', 'privacy') }}">Privacy</a>
                 <a class="block hover:text-white" href="{{ route('legal', 'refunds') }}">Refunds</a>

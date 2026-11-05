@@ -22,13 +22,14 @@
     --color-line: #e6e2d9;
     --color-line-strong: #d4cfc4;
     --color-accent: #9a3412;
-    --color-accent-bright: #f0b429;
+    --color-accent-bright: #9a3412;
     --color-good: #0f766e;
     --color-good-soft: #e7f6f3;
     --color-wait: #92400e;
     --color-wait-soft: #fbf3e4;
     --color-bad: #9f1239;
     --color-bad-soft: #fde8ee;
+    --color-slate-500: #475569;
     --color-app: #f6f5f3;
     --color-surface: #ffffff;
 

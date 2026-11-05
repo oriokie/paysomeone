@@ -16,14 +16,14 @@ class Board
             return $query;
         }
         if (Access::allows($staff, 'orders.view_review') && ! Access::allows($staff, 'orders.view_own')) {
-            return $query->where('status_id', Order::DONE);
+            return $query->whereIn('status_id', [Order::DONE, Order::REVISION, Order::DELIVERED]);
         }
 
         return $query->where(function (Builder $inner) use ($staff) {
             $inner->where('writer_id', $staff->employee_id)
                 ->orWhere('editor_id', $staff->employee_id);
             if (Access::allows($staff, 'orders.view_review')) {
-                $inner->orWhere('status_id', Order::DONE);
+                $inner->orWhereIn('status_id', [Order::DONE, Order::REVISION, Order::DELIVERED]);
             }
         });
     }

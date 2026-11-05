@@ -120,6 +120,22 @@ class OrderWorkController extends Controller
         return back()->with('status', $free ? 'Free revision requested.' : 'Revision requested. It may be billed because the free window has passed.')->with('tab', 'revision');
     }
 
+    public function accept(Request $request, Order $order): RedirectResponse
+    {
+        $this->owns($request, $order);
+        $this->writable();
+        if ((int) $order->status_id !== Order::DELIVERED) {
+            return back()->withErrors(['order' => 'The delivery can be approved once the editor has released it.']);
+        }
+        $order->status_id = Order::FINISHED;
+        $order->approved_at = now();
+        $order->finished_at = now();
+        $order->date_upd = now();
+        $order->save();
+
+        return back()->with('status', 'Delivery approved. The order is finished.');
+    }
+
     public function rate(Request $request, Order $order): RedirectResponse
     {
         $customer = $this->owns($request, $order);

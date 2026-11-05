@@ -10,12 +10,23 @@ use Illuminate\Http\Request;
 
 abstract class OfficeController extends Controller
 {
-    protected function staff(Request $request): Employee
+    protected function actor(Request $request): Employee
     {
         /** @var Employee $staff */
         $staff = $request->user('staff');
 
         return $staff;
+    }
+
+    protected function staff(Request $request): Employee
+    {
+        $actor = $this->actor($request);
+        $viewAs = (int) session('office.view_as', 0);
+        if ($viewAs > 0 && (int) $actor->employee_group === Employee::GROUP_ADMIN) {
+            return Employee::query()->find($viewAs) ?? $actor;
+        }
+
+        return $actor;
     }
 
     protected function permit(Request $request, string $permission): Employee
@@ -28,6 +39,6 @@ abstract class OfficeController extends Controller
 
     protected function audit(Employee $staff, string $action, ?string $type = null, ?string $id = null, array $meta = []): void
     {
-        Auditor::write($staff, $action, $type, $id, $meta);
+        Auditor::write($this->actor(request()), $action, $type, $id, $meta);
     }
 }

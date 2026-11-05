@@ -307,7 +307,7 @@
                         <div x-show="couponOpen" x-cloak>
                             <label class="ui-label" for="coupon_code">Coupon <span class="font-normal text-slate-400">Optional</span></label>
                             <input id="coupon_code" name="coupon_code" x-model="couponCode" @input="schedule()" class="ui-input max-w-xs" autocomplete="off">
-                            <p class="mt-2 text-[13px] text-good" x-show="couponCode && quote && Number(quote.discount) > 0">Code applied.</p>
+                            <p class="mt-2 text-[13px] text-good" x-show="couponCode && quote && Number(quote.discount) !== 0">Code applied.</p>
                         </div>
                     </div>
                 </section>

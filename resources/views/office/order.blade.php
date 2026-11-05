@@ -83,7 +83,7 @@
                         <button class="ui-btn ui-btn-primary" type="submit">Upload</button>
                     </form>
                 @endif
-                @if ((int) $order->writer_id === (int) $staff->employee_id && in_array((int) $order->status_id, [\App\Models\Order::WRITER_ASSIGNED, \App\Models\Order::WRITER_ACCEPTED], true))
+                @if ((int) $order->writer_id === (int) $staff->employee_id && in_array((int) $order->status_id, [\App\Models\Order::WRITER_ASSIGNED, \App\Models\Order::WRITER_ACCEPTED, \App\Models\Order::REVISION], true))
                     <form class="mt-3" method="POST" action="{{ route('office.orders.submit', $order) }}">@csrf<button class="ui-btn ui-btn-quiet" type="submit">Submit for review</button></form>
                 @endif
                 @if ($can('files.approve') && (int) $order->status_id === \App\Models\Order::DONE)
@@ -104,6 +104,9 @@
                         <div class="rounded-2xl bg-slate-50 px-4 py-3 text-[13px]">
                             <p class="text-slate-400">{{ \App\Support\Departments::NAMES[(int) $message->from_department] ?? 'Note' }} → {{ \App\Support\Departments::NAMES[(int) $message->to_department] ?? 'Note' }}</p>
                             <p class="mt-1 whitespace-pre-wrap">{{ $message->body }}</p>
+                            @if ((int) $message->to_department === \App\Support\Departments::CUSTOMER && ! $message->is_verified && $can('messages.customer'))
+                                <form method="POST" action="{{ route('office.orders.messages.release', [$order, $message]) }}">@csrf<button class="mt-2 text-[13px] font-medium text-navy" type="submit">Release to customer</button></form>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -113,8 +116,8 @@
                         <select name="to" class="ui-input">
                             <option value="{{ \App\Support\Departments::SUPPORT }}">Support</option>
                             <option value="{{ \App\Support\Departments::WRITER }}">Writer</option>
-                            @if ($can('messages.customer'))
-                                <option value="{{ \App\Support\Departments::CUSTOMER }}">Customer</option>
+                            @if ($can('messages.customer') || (int) $staff->employee_group === \App\Models\Employee::GROUP_WRITER)
+                                <option value="{{ \App\Support\Departments::CUSTOMER }}">Customer (held until an admin releases it)</option>
                             @endif
                         </select>
                         <textarea name="body" required rows="3" class="ui-input h-auto py-3" placeholder="Write the message"></textarea>

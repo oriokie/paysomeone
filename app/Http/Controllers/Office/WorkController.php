@@ -142,7 +142,7 @@ class WorkController extends OfficeController
         $staff = $this->permit($request, 'messages.staff');
         $this->visible($staff, $order);
         $allowed = [Departments::SUPPORT, Departments::WRITER];
-        if (Access::allows($staff, 'messages.customer')) {
+        if (Access::allows($staff, 'messages.customer') || (int) $staff->employee_group === Employee::GROUP_WRITER) {
             $allowed[] = Departments::CUSTOMER;
         }
         $data = $request->validate([
@@ -160,13 +160,31 @@ class WorkController extends OfficeController
         $message->to_department = (int) $data['to'];
         $message->subject = 'Order #'.$order->order_id;
         $message->body = $data['body'];
-        $message->is_verified = (int) $data['to'] === Departments::CUSTOMER ? 1 : 0;
+        $toCustomer = (int) $data['to'] === Departments::CUSTOMER;
+        $message->is_verified = $toCustomer && Access::allows($staff, 'messages.customer') ? 1 : 0;
         $message->date_add = now();
         $message->date_upd = now();
         $message->save();
         $this->audit($staff, 'order.message', 'order', (string) $order->order_id, ['to' => $data['to']]);
 
-        return back()->with('status', 'Message sent.');
+        $note = $toCustomer && ! $message->is_verified
+            ? 'Message held for an admin to release to the customer.'
+            : 'Message sent.';
+
+        return back()->with('status', $note);
+    }
+
+    public function release(Request $request, Order $order, OrderMessage $message): RedirectResponse
+    {
+        $staff = $this->permit($request, 'messages.customer');
+        abort_unless((int) $message->order_id === (int) $order->order_id, 404);
+        $message->is_verified = 1;
+        $message->verified_at = now();
+        $message->date_upd = now();
+        $message->save();
+        $this->audit($staff, 'message.release', 'order', (string) $order->order_id, ['message_id' => $message->message_id]);
+
+        return back()->with('status', 'Message released to the customer.');
     }
 
     public function upload(Request $request, Order $order, OrderFileStore $files): RedirectResponse
@@ -196,7 +214,7 @@ class WorkController extends OfficeController
     {
         $staff = $this->permit($request, 'files.upload');
         abort_unless((int) $order->writer_id === (int) $staff->employee_id, 403);
-        abort_unless(in_array((int) $order->status_id, [Order::WRITER_ASSIGNED, Order::WRITER_ACCEPTED], true), 422);
+        abort_unless(in_array((int) $order->status_id, [Order::WRITER_ASSIGNED, Order::WRITER_ACCEPTED, Order::REVISION], true), 422);
         $order->status_id = Order::DONE;
         $order->completed_at = now();
         $order->date_upd = now();

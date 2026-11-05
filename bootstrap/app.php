@@ -30,10 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'staff.2fa' => \App\Http\Middleware\RequireStaffTwoFactor::class,
             'staff.touch' => \App\Http\Middleware\TouchStaffSession::class,
+            'staff.view' => \App\Http\Middleware\ViewAsReadOnly::class,
         ]);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: [
             'payments/mpesa/callback',
+            'payments/mpesa/b2c',
             'payments/paypal/webhook',
             'payments/stripe/webhook',
             'payments/pesapal/ipn',

@@ -163,6 +163,25 @@ class OfficeTest extends TestCase
     }
 
     #[Test]
+    public function payout_approval_uses_the_b2c_mock_and_the_callback_pays_once(): void
+    {
+        config(['legacy.read_only' => false, 'legacy.safe_mode' => false, 'services.mpesa.b2c_mock' => true, 'services.mpesa.consumer_key' => 'key', 'services.mpesa.consumer_secret' => 'secret']);
+        $writer = $this->staff(Employee::GROUP_WRITER, 'b2c-writer@example.test');
+        $admin = $this->staff(Employee::GROUP_ADMIN, 'b2c-admin@example.test');
+        $this->office($writer)->post('/office/earnings', ['phone' => '0712345678', 'amount' => 15])->assertRedirect();
+        $request = PaymentRequest::query()->where('user_id', $writer->employee_id)->first();
+        $this->office($admin)->post(route('office.payouts.approve', $request))->assertRedirect()->assertSessionHas('status');
+        $payout = MpesaPayout::query()->where('payment_request_id', $request->payment_request_id)->first();
+        $this->assertFalse((bool) $payout->is_paid);
+        $this->assertStringStartsWith('mock-', (string) $payout->transaction_id);
+        $body = ['Result' => ['ResultCode' => 0, 'TransactionID' => 'B2C1', 'TransactionAmount' => 15, 'ReceiverPartyPublicName' => '254712345678 - NORA']];
+        $this->postJson('/payments/mpesa/b2c', $body)->assertOk();
+        $this->postJson('/payments/mpesa/b2c', $body)->assertOk();
+        $this->assertTrue((bool) $payout->fresh()->is_paid);
+        $this->assertSame(1, PaymentRequest::query()->where('payment_request_id', $request->payment_request_id)->where('status', 1)->count());
+    }
+
+    #[Test]
     public function read_only_mode_blocks_a_writer_bid(): void
     {
         $customer = $this->customer('ro-customer@example.test');

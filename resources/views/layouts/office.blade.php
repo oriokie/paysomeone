@@ -25,6 +25,9 @@
             ['office.news', 'News', 'bell', $can('news.view') || $can('news.manage')],
             ['office.reports', 'Reports', 'file', $can('reports.view')],
             ['office.roles', 'Roles', 'settings', $can('roles.manage')],
+            ['office.gateways', 'Gateways', 'card', $can('gateways.view')],
+            ['office.fines', 'Fines', 'file', $can('fines.manage')],
+            ['office.applications', 'Applications', 'users', $can('people.manage')],
             ['office.settings', 'Settings', 'settings', $can('settings.manage')],
             ['office.activity', 'Activity', 'clock', $can('audit.view')],
         ], fn ($item) => $item[3]));
@@ -49,6 +52,12 @@
             </div>
         </aside>
         <div class="min-w-0">
+            @if (session('office.view_as'))
+                <div class="flex items-center justify-between bg-amber-100 px-4 py-2 text-[13px] text-amber-950">
+                    <span>Viewing as another staff member. This session cannot change anything.</span>
+                    <form method="POST" action="{{ route('office.view-as.stop') }}">@csrf<button class="font-semibold" type="submit">Stop</button></form>
+                </div>
+            @endif
             @if ($readOnly)
                 <div class="bg-navy px-4 py-2 text-center text-[13px] text-white/80">Read-only. Live order, staff, and payout rows are not changed.</div>
             @endif

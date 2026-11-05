@@ -35,6 +35,9 @@ return [
         'shortcode' => env('MPESA_SHORTCODE'),
         'passkey' => env('MPESA_PASSKEY'),
         'callback_secret' => env('MPESA_CALLBACK_SECRET'),
+        'initiator' => env('MPESA_INITIATOR'),
+        'security_credential' => env('MPESA_SECURITY_CREDENTIAL'),
+        'b2c_mock' => filter_var(env('MPESA_B2C_MOCK', false), FILTER_VALIDATE_BOOL),
     ],
 
     'paypal' => [

@@ -27,7 +27,7 @@
         };
         $primary = match (true) {
             $due > 0 => ['Pay now', 'payment'],
-            $status === Order::DELIVERED => ['Request revision', 'revision'],
+            $status === Order::DELIVERED => ['Approve delivery', 'overview'],
             $status === Order::FINISHED => ['View files', 'files'],
             default => ['Messages', 'messages'],
         };
@@ -71,6 +71,12 @@
         </div>
 
         <div class="mt-6" x-show="tab === 'overview'" role="tabpanel">
+            @if ((int) $order->status_id === Order::DELIVERED && ! $readOnly)
+                <form class="mb-4" method="POST" action="{{ route('desk.orders.accept', $order) }}">
+                    @csrf
+                    <button class="ui-btn ui-btn-primary" type="submit">Approve the delivery</button>
+                </form>
+            @endif
             <dl class="ui-card grid gap-px overflow-hidden sm:grid-cols-2">
                 @foreach ([
                     'Service' => $order->serviceLabel(),
@@ -159,7 +165,7 @@
 
         <div class="mt-6 flex min-h-[420px] flex-col" x-show="tab === 'messages'" x-cloak role="tabpanel">
             <div class="flex-1 space-y-3">
-                @forelse ($order->messages->where('is_deleted', false) as $message)
+                @forelse ($order->messages->where('is_deleted', false)->filter(fn ($message) => (int) $message->from_department !== \App\Support\Departments::WRITER || $message->is_verified) as $message)
                     @php $mine = (int) $message->from_department === Departments::CUSTOMER; @endphp
                     <div class="flex gap-3 {{ $mine ? 'flex-row-reverse' : '' }}">
                         <span class="grid size-8 shrink-0 place-items-center rounded-full {{ $mine ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600' }} text-[13px] font-semibold">{{ strtoupper(substr(Departments::NAMES[(int) $message->from_department] ?? 'N', 0, 1)) }}</span>

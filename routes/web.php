@@ -29,6 +29,9 @@ Route::get('/legal/{page}', [PageController::class, 'legal'])->name('legal');
 Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 
+Route::get('/apply', [\App\Http\Controllers\ApplyController::class, 'create'])->name('apply');
+Route::post('/apply', [\App\Http\Controllers\ApplyController::class, 'store'])->middleware('throttle:6,1')->name('apply.store');
+
 Route::get('/order', [OrderController::class, 'create'])->name('order.create');
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:10,1')->name('order.store');
 Route::post('/order/quote', [OrderController::class, 'quote'])->middleware('throttle:60,1')->name('quote');
@@ -53,6 +56,7 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/account/orders/{order}/files/{file}', [OrderWorkController::class, 'download'])->name('desk.files.download');
     Route::post('/account/orders/{order}/messages', [OrderWorkController::class, 'message'])->name('desk.messages.store');
     Route::post('/account/orders/{order}/revisions', [OrderWorkController::class, 'revision'])->name('desk.revisions.store');
+    Route::post('/account/orders/{order}/accept', [OrderWorkController::class, 'accept'])->name('desk.orders.accept');
     Route::post('/account/orders/{order}/rating', [OrderWorkController::class, 'rate'])->name('desk.rating.store');
     Route::post('/account/orders/{order}/tip', [OrderWorkController::class, 'tip'])->name('desk.tip.store');
     Route::post('/account/orders/{order}/pay', [PaymentController::class, 'pay'])->name('desk.pay');
@@ -66,6 +70,11 @@ Route::middleware('auth:customer')->group(function () {
 });
 
 Route::post('/payments/mpesa/callback', [PaymentController::class, 'mpesa'])->name('payments.mpesa');
+Route::post('/payments/mpesa/b2c', function (\Illuminate\Http\Request $request) {
+    $ok = app(\App\Services\Payments\MpesaB2c::class)->reconcile($request->all());
+
+    return response()->json(['ResultCode' => $ok ? 0 : 1, 'ResultDesc' => $ok ? 'Accepted' : 'Ignored']);
+})->name('payments.mpesa.b2c');
 Route::post('/payments/stripe/webhook', [PaymentController::class, 'stripe'])->name('payments.stripe');
 Route::post('/payments/paypal/webhook', [PaymentController::class, 'paypal'])->name('payments.paypal');
 Route::post('/payments/pesapal/ipn', [PaymentController::class, 'pesapal'])->name('payments.pesapal');
