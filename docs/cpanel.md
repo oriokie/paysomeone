@@ -1,5 +1,7 @@
 # Putting the new site on cPanel
 
+The step-by-step for `new.paysomeonetowrite.com` is in [deploy-cpanel.md](deploy-cpanel.md). This page is the shorter background note.
+
 This is the path for a subdomain such as `new.paysomeonetowrite.com` on ordinary shared hosting (PHP 8.4, MariaDB 11.4). The current website stays where it is. This site uses the **same database** and, until you say otherwise, does not change it.
 
 You do not need Node on the server. The compiled styles are already in `public/build`. You do need SSH or cPanel’s Terminal for Composer, once.

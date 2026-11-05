@@ -90,3 +90,7 @@ Everything else in the requested set is on target: Filament 95.1%, console impor
 | Support | 103 | 109 | 94.5% |
 
 The statement count moved from 3,476 to 3,969 because of the mail layout, dispute and account routes, deadline command, and receipt PDF. The eight unused model classes are still unreferenced (39 statements). `Dispute::customer` is now used by the office dispute list.
+
+## After the deploy checks
+
+`php artisan test --coverage-clover` on 5 November 2026. 104 tests, 911 assertions. Coverage 3,977 / 4,256 (93.44%). `composer test:coverage` (`--min=93`) exited 0. Playwright: 10 passed.

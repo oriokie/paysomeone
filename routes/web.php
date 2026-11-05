@@ -95,5 +95,6 @@ Route::post('/payments/pesapal/ipn', [PaymentController::class, 'pesapal'])->nam
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/robots.txt', \App\Http\Controllers\RobotsController::class)->name('robots');
 Route::get('/health', \App\Http\Controllers\HealthController::class)->name('health');
+Route::match(['get', 'post'], '/install', \App\Http\Controllers\InstallController::class)->middleware('throttle:20,1')->name('install');
 Route::get('/email/preferences/{email}', [\App\Http\Controllers\EmailPreferenceController::class, 'edit'])->name('email.preferences');
 Route::post('/email/preferences/{email}', [\App\Http\Controllers\EmailPreferenceController::class, 'update'])->name('email.preferences.update');

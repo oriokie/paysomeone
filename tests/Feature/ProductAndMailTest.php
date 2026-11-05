@@ -189,7 +189,7 @@ class ProductAndMailTest extends TestCase
     public function health_robots_and_service_markup_are_public(): void
     {
         $this->get(route('health'))->assertOk()->assertJson(['app' => 'ok', 'database' => 'ok']);
-        $this->get('/robots.txt')->assertOk()->assertSee('Disallow: /office', false);
+        $this->get('/robots.txt')->assertOk()->assertSee('Disallow: /office', false)->assertSee('Disallow: /install', false);
         $this->get(route('services'))->assertOk()->assertSee('schema.org', false)->assertSee('Professional writing', false);
     }
 
