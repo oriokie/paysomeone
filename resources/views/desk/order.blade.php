@@ -150,7 +150,7 @@
                             <x-glyph name="file" class="size-5 text-slate-400" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-[15px] font-medium">{{ $file->name }}</span>
-                                <span class="text-[13px] text-slate-500">{{ number_format(max(1, (int) $file->size / 1024), 0) }} KB · {{ (int) $file->uploader_id === (int) $order->customer_id ? 'You' : 'Writer' }}</span>
+                                <span class="text-[13px] text-slate-500">{{ number_format(max(1, (int) $file->size / 1024), 0) }} KB · Version {{ $files->values()->take($loop->iteration)->where('name', $file->name)->count() }} · {{ (int) $file->uploader_id === (int) $order->customer_id ? 'You' : 'Writer' }}</span>
                             </span>
                             <a class="text-[13px] font-medium text-navy" href="{{ route('desk.files.download', [$order, $file]) }}">Download</a>
                         </li>
@@ -231,6 +231,7 @@
             @if (in_array((int) $order->status_id, [Order::DELIVERED, Order::FINISHED], true))
                 <form class="ui-card space-y-3 p-6" method="POST" action="{{ route('desk.revisions.store', $order) }}" x-data="{ ask: false }" @submit.prevent="ask = true">
                     @csrf
+                    <p class="text-[13px] text-slate-500">Two revision requests are included after delivery.</p>
                     <label class="ui-label" for="instructions">What should change?</label>
                     <textarea id="instructions" name="instructions" required minlength="10" rows="4" class="ui-input h-auto py-3"></textarea>
                     <label class="ui-label" for="hours">Needed within</label>
@@ -316,8 +317,24 @@
                         <input id="paper_rating" name="paper_rating" type="number" min="1" max="5" required class="ui-input">
                         <textarea name="comment" rows="3" class="ui-input h-auto py-3" placeholder="Optional note"></textarea>
                         <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" name="paper_on_time" value="1"> Delivered on time</label>
+                        <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" name="publish" value="1"> Show this comment on the public reviews page without my name</label>
                         <button class="ui-btn ui-btn-quiet w-full" type="submit">Save rating</button>
                     </form>
+                    @if ((float) $order->total_paid > 0)
+                        <a class="ui-btn ui-btn-quiet mt-4 w-full" href="{{ route('desk.receipt', $order) }}">Receipt PDF</a>
+                    @endif
+                    <form class="mt-3" method="POST" action="{{ route('desk.reorder', $order) }}">
+                        @csrf
+                        <button class="ui-btn ui-btn-quiet w-full" type="submit">Use this brief again</button>
+                    </form>
+                    @if ((float) $order->total_paid > 0)
+                        <form class="mt-3 space-y-2" method="POST" action="{{ route('desk.dispute', $order) }}">
+                            @csrf
+                            <label class="ui-label" for="reason">Open a dispute</label>
+                            <textarea id="reason" name="reason" minlength="20" rows="3" class="ui-input h-auto py-3" placeholder="What went wrong, in at least a sentence."></textarea>
+                            <button class="ui-btn ui-btn-quiet w-full" type="submit">Send to a manager</button>
+                        </form>
+                    @endif
                     <form class="mt-3 flex gap-2" method="POST" action="{{ route('desk.tip.store', $order) }}">
                         @csrf
                         <label class="sr-only" for="amount">Tip amount</label>

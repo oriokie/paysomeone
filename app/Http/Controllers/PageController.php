@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrderRating;
+use App\Models\ReviewConsent;
 use App\Support\RateCatalog;
 use App\Support\Services;
 use Illuminate\View\View;
@@ -78,7 +79,10 @@ class PageController extends Controller
     private function recentReviews(int $limit)
     {
         return $this->safe(function () use ($limit) {
+            $allowed = ReviewConsent::query()->where('consented', true)->pluck('rating_id');
+
             return OrderRating::query()
+                ->whereIn('rating_id', $allowed)
                 ->where('user_type', 'customer')
                 ->whereNotNull('comment')
                 ->where('comment', '!=', '')

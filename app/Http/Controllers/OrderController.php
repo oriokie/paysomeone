@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Deadline;
 use App\Models\Order;
+use App\Models\SavedBrief;
 use App\Services\Orders\InquiryRecorder;
 use App\Services\Orders\OrderFileStore;
 use App\Services\Pricing\QuoteBuilder;
@@ -23,6 +24,16 @@ class OrderController extends Controller
         $rates = $catalog->grouped();
         $rates[Services::SOFTWARE] = $rates[Services::RESUMES] ?? [];
         $catalogOptions = $form->options();
+        $savedTitle = '';
+        $savedBrief = '';
+        if ($request = request()) {
+            $brief = SavedBrief::query()->find($request->query('brief'));
+            $owner = $request->user('customer');
+            if ($brief && $owner && (int) $brief->customer_id === (int) $owner->customer_id) {
+                $savedTitle = $brief->title;
+                $savedBrief = $brief->brief;
+            }
+        }
 
         return view('pages.order', [
             'options' => [
@@ -35,8 +46,8 @@ class OrderController extends Controller
                 'readOnly' => (bool) config('legacy.read_only'),
                 'initialStep' => session()->has('errors') ? 5 : 1,
                 'old' => [
-                    'title' => old('title', ''),
-                    'brief' => old('brief', ''),
+                    'title' => old('title', $savedTitle),
+                    'brief' => old('brief', $savedBrief),
                     'keywords' => old('keywords', ''),
                     'name' => old('name', ''),
                     'email' => old('email', ''),

@@ -2,6 +2,20 @@
 @section('title', 'Services — '.$siteName)
 @section('description', 'Articles, editing, proofreading, rewriting, business documents, and resumes for companies and professionals.')
 
+@push('head')
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'Service',
+            'name' => 'Professional writing',
+            'serviceType' => 'Business and professional writing',
+            'provider' => ['@type' => 'Organization', 'name' => $siteName],
+            'areaServed' => 'Worldwide',
+            'description' => 'Articles, editing, proofreading, rewriting, business documents, and resumes for companies and professionals.',
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+@endpush
+
 @section('content')
     <section class="wrap py-16 lg:py-20">
         <p class="eyebrow">Services</p>

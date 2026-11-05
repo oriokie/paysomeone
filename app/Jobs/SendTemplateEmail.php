@@ -3,10 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\MailTemplate;
-use App\Services\Outbound\MailGateway;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
 
 class SendTemplateEmail implements ShouldQueue
 {
@@ -20,9 +18,12 @@ class SendTemplateEmail implements ShouldQueue
         public string $to,
         public array $data,
         public string $fallbackSubject,
+        public string $category = 'orders',
+        public bool $essential = false,
+        public ?string $actionUrl = null,
     ) {}
 
-    public function handle(MailGateway $mail): void
+    public function handle(): void
     {
         $stored = null;
         try {
@@ -35,19 +36,18 @@ class SendTemplateEmail implements ShouldQueue
         $body = $stored?->message ?: $this->fallbackSubject."\n\n".json_encode($this->data);
         $subject = $this->fill($subject);
         $body = $this->fill($body);
+        $lines = array_values(array_filter(preg_split("/\r\n|\n/", $body) ?: [], fn ($line) => trim($line) !== ''));
 
-        if (config('legacy.safe_mode')) {
-            Log::info('SAFE_MODE suppressed a template email.', [
-                'template' => $this->template,
-                'to' => $this->to,
-                'subject' => $subject,
-                'body' => $body,
-            ]);
-
-            return;
-        }
-
-        $mail->send($this->to, $subject, $body);
+        app(\App\Services\Desk\OutboundMail::class)->send(
+            $this->to,
+            $subject,
+            $subject,
+            $lines === [] ? [$subject] : $lines,
+            $this->actionUrl,
+            'Open',
+            $this->category,
+            $this->essential,
+        );
     }
 
     private function fill(string $text): string

@@ -4,14 +4,14 @@ namespace App\Services\Accounts;
 
 use App\Exceptions\LegacyWriteBlocked;
 use App\Models\Customer;
-use App\Services\Outbound\MailGateway;
+use App\Services\Desk\OutboundMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class PasswordResetter
 {
-    public function __construct(private readonly MailGateway $mail) {}
+    public function __construct(private readonly OutboundMail $mail) {}
 
     /**
      * Always returns a calm result. It does not reveal whether the email exists.
@@ -47,7 +47,12 @@ class PasswordResetter
         $sent = $this->mail->send(
             $email,
             'Reset your password',
-            "Use this link within 60 minutes to choose a new password:\n\n{$link}\n\nIf you did not ask for this, you can ignore the email.",
+            'Reset your password',
+            ['Use the button to choose a new password. The link works for 60 minutes. If you did not ask for this, you can ignore the email.'],
+            $link,
+            'Choose a password',
+            'orders',
+            true,
         );
 
         return [

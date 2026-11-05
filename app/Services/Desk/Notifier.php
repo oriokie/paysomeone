@@ -16,13 +16,13 @@ class Notifier
     /**
      * @param  array<string, mixed>  $data
      */
-    public function email(string $template, string $to, array $data, string $fallbackSubject): void
+    public function email(string $template, string $to, array $data, string $fallbackSubject, string $category = 'orders', bool $essential = false, ?string $actionUrl = null): void
     {
         if ($to === '') {
             return;
         }
 
-        SendTemplateEmail::dispatch($template, $to, $data, $fallbackSubject);
+        SendTemplateEmail::dispatch($template, $to, $data, $fallbackSubject, $category, $essential, $actionUrl);
     }
 
     public function staff(string $action, string $nodeType, string $nodeUrl, string $message, int $fromCustomerId): void

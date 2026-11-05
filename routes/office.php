@@ -7,6 +7,8 @@ use App\Http\Controllers\Office\MoneyController;
 use App\Http\Controllers\Office\PeopleController;
 use App\Http\Controllers\Office\PoolController;
 use App\Http\Controllers\Office\SessionController;
+use App\Http\Controllers\Office\DisputeController;
+use App\Http\Controllers\Office\StaffPasswordController;
 use App\Http\Controllers\Office\SystemController;
 use App\Http\Controllers\Office\WorkController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +17,10 @@ Route::prefix('office')->name('office.')->group(function () {
     Route::middleware('guest:staff')->group(function () {
         Route::get('login', [SessionController::class, 'create'])->name('login');
         Route::post('login', [SessionController::class, 'store'])->middleware('throttle:5,1');
+        Route::get('forgot', [StaffPasswordController::class, 'requestForm'])->name('forgot');
+        Route::post('forgot', [StaffPasswordController::class, 'send'])->middleware('throttle:6,1')->name('forgot.send');
+        Route::get('reset/{token}', [StaffPasswordController::class, 'resetForm'])->name('reset');
+        Route::post('reset', [StaffPasswordController::class, 'reset'])->middleware('throttle:8,1')->name('reset.store');
     });
 
     Route::middleware('auth:staff')->group(function () {
@@ -70,6 +76,9 @@ Route::prefix('office')->name('office.')->group(function () {
             Route::get('news', [SystemController::class, 'news'])->name('news');
             Route::post('news', [SystemController::class, 'storeNews'])->name('news.store');
             Route::get('activity', [SystemController::class, 'activity'])->name('activity');
+            Route::get('disputes', [DisputeController::class, 'index'])->name('disputes');
+            Route::post('disputes/{dispute}', [DisputeController::class, 'resolve'])->name('disputes.resolve');
+            Route::post('settings/test-email', [SystemController::class, 'testEmail'])->name('settings.test-email');
         });
     });
 });

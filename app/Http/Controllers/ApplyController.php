@@ -70,6 +70,12 @@ class ApplyController extends Controller
         $file->date_upd = now();
         $file->save();
 
+        foreach (\App\Models\Employee::query()->where('employee_group', \App\Models\Employee::GROUP_ADMIN)->where('is_banned', 0)->get() as $admin) {
+            app(\App\Services\Desk\Notifier::class)->email('new_applicant', (string) $admin->email, [
+                'name' => trim($data['first_name'].' '.$data['last_name']),
+            ], 'New writer application', 'orders', false, route('office.applications'));
+        }
+
         return redirect()->route('apply')->with('status', 'Application received. An editor will review the sample. You cannot sign in until it is approved.');
     }
 

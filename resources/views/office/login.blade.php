@@ -18,5 +18,6 @@
             @if ($errors->any())<p class="text-[13px] text-bad" role="alert">{{ $errors->first() }}</p>@endif
             <button class="ui-btn ui-btn-primary w-full" type="submit">Continue</button>
         </form>
+        <p class="mt-4 text-center text-[13px]"><a class="underline" href="{{ route('office.forgot') }}">Forgot your password?</a></p>
     </section>
 @endsection

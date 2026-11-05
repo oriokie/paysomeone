@@ -67,3 +67,26 @@ Unused relation methods left on otherwise-used models, also not called from app 
 Excluding the eight unused classes, model line coverage is 91.6% (295/322). Relations the desk and office actually load (order files, messages, bids, writer, editor, deadline, ratings, wallet transactions, payment intent to order) are asserted.
 
 Everything else in the requested set is on target: Filament 95.1%, console importer 100% with a mocked process (no SQL is imported), payments 90.5%, office controllers 98.3%.
+
+## After the product and email pass
+
+`php artisan test --coverage-clover /tmp/cov.xml` on 5 November 2026. 97 tests, 849 assertions. `composer test:coverage` (`--min=93`) exited 0. Playwright: 10 passed.
+
+| Area | Covered | Statements | Line coverage |
+|---|---:|---:|---:|
+| app/ overall | 3,701 | 3,970 | 93.22% |
+| Filament | 39 | 41 | 95.1% |
+| Console | 69 | 69 | 100% |
+| Models | 312 | 378 | 82.5% |
+| Models, excluding eight unused classes | 312 | 339 | 92.0% |
+| Services/Payments | 618 | 680 | 90.9% |
+| Http/Controllers/Office | 885 | 901 | 98.2% |
+| Http, including office | 1,643 | 1,705 | 96.4% |
+| Services, excluding payments | 745 | 805 | 92.5% |
+| Auth | 37 | 42 | 88.1% |
+| Jobs | 23 | 25 | 92.0% |
+| Mail | 6 | 6 | 100% |
+| Providers | 104 | 107 | 97.2% |
+| Support | 103 | 109 | 94.5% |
+
+The statement count moved from 3,476 to 3,969 because of the mail layout, dispute and account routes, deadline command, and receipt PDF. The eight unused model classes are still unreferenced (39 statements). `Dispute::customer` is now used by the office dispute list.

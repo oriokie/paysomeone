@@ -86,7 +86,7 @@ class PaymentRecorder
                         'paid_amount' => number_format($amount, 2),
                         'payment_method' => $method,
                         'username' => $customer->name,
-                    ], 'Payment received for order #'.$fresh->order_id);
+                    ], 'Payment received for order #'.$fresh->order_id, 'payments', true, route('desk.order', $fresh));
                 }
             }
 

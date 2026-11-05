@@ -9,6 +9,7 @@ use App\Models\OrderBid;
 use App\Models\OrderEmployee;
 use App\Models\OrderMessage;
 use App\Models\OrderNote;
+use App\Services\Desk\Notifier;
 use App\Services\Office\Access;
 use App\Services\Office\Board;
 use App\Services\Orders\OrderFileStore;
@@ -65,6 +66,8 @@ class WorkController extends OfficeController
         $order->date_upd = now();
         $order->save();
         $this->audit($staff, 'order.assign', 'order', (string) $order->order_id, $data);
+        $this->tellAssignee($order, $data['writer_id'] ?? null, 'writer');
+        $this->tellAssignee($order, $data['editor_id'] ?? null, 'editor');
 
         return back()->with('status', 'Assignment saved.');
     }
@@ -85,6 +88,7 @@ class WorkController extends OfficeController
         $order->save();
         $this->seat($order, $writer, 'writer');
         $this->audit($staff, 'order.bid_approved', 'order', (string) $order->order_id, ['bid_id' => $bid->bid_id]);
+        $this->tellAssignee($order, $writer->employee_id, 'writer');
 
         return back()->with('status', 'Bid approved. The writer is assigned.');
     }
@@ -183,6 +187,13 @@ class WorkController extends OfficeController
         $message->date_upd = now();
         $message->save();
         $this->audit($staff, 'message.release', 'order', (string) $order->order_id, ['message_id' => $message->message_id]);
+        $customer = $order->customer;
+        if ($customer && $customer->email) {
+            app(Notifier::class)->email('staff_message', (string) $customer->email, [
+                'order_id' => $order->order_id,
+                'message' => $message->body,
+            ], 'New message on order #'.$order->order_id, 'messages', false, route('desk.order', $order));
+        }
 
         return back()->with('status', 'Message released to the customer.');
     }
@@ -233,6 +244,13 @@ class WorkController extends OfficeController
         $order->date_upd = now();
         $order->save();
         $this->audit($staff, 'order.editor_approve', 'order', (string) $order->order_id);
+        $customer = $order->customer;
+        if ($customer && $customer->email) {
+            app(Notifier::class)->email('order_delivered', (string) $customer->email, [
+                'order_id' => $order->order_id,
+                'title' => $order->title,
+            ], 'Your order #'.$order->order_id.' is ready to review', 'orders', false, route('desk.order', $order));
+        }
 
         return back()->with('status', 'Approved and marked delivered.');
     }
@@ -261,8 +279,25 @@ class WorkController extends OfficeController
         $message->date_upd = now();
         $message->save();
         $this->audit($staff, 'order.editor_return', 'order', (string) $order->order_id);
+        $this->tellAssignee($order, $order->writer_id, 'writer');
 
         return back()->with('status', 'Returned to the writer.');
+    }
+
+    private function tellAssignee(Order $order, mixed $employeeId, string $role): void
+    {
+        if (! $employeeId) {
+            return;
+        }
+        $person = Employee::query()->find($employeeId);
+        if (! $person || ! $person->email) {
+            return;
+        }
+        app(Notifier::class)->email('staff_assigned', (string) $person->email, [
+            'order_id' => $order->order_id,
+            'title' => $order->title,
+            'role' => $role,
+        ], 'You are the '.$role.' on order #'.$order->order_id, 'orders', false, route('office.orders.show', $order));
     }
 
     private function visible(Employee $staff, Order $order): void

@@ -190,7 +190,13 @@ class DeskController extends Controller
 
     public function profile(Request $request): View
     {
-        return view('desk.profile', ['customer' => $this->customer($request)]);
+        $customer = $this->customer($request);
+        $pref = \App\Models\NotificationPreference::query()->where('email', strtolower((string) $customer->email))->first();
+
+        return view('desk.profile', [
+            'customer' => $customer,
+            'pref' => $pref,
+        ]);
     }
 
     public function updateProfile(Request $request): RedirectResponse

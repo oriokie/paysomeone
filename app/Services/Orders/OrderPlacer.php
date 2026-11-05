@@ -136,9 +136,14 @@ class OrderPlacer
         $this->notifier->email('new_order_available', (string) $customer->email, [
             'order_id' => $order->order_id,
             'title' => $order->title,
-            'username' => $customer->name,
             'total' => number_format($total, 2),
-        ], 'We have your brief #'.$order->order_id);
+        ], 'We have your brief #'.$order->order_id, 'orders', true, route('desk.order', $order));
+        foreach (\App\Models\Employee::query()->whereIn('employee_group', [\App\Models\Employee::GROUP_ADMIN, \App\Models\Employee::GROUP_SUB_ADMIN])->where('is_banned', 0)->get() as $admin) {
+            $this->notifier->email('staff_new_order', (string) $admin->email, [
+                'order_id' => $order->order_id,
+                'title' => $order->title,
+            ], 'New brief #'.$order->order_id, 'orders', false, route('office.orders.show', $order));
+        }
 
         DeskEvent::dispatch('order.placed', (int) $order->order_id, ['status' => $status]);
 

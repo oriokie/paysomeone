@@ -84,6 +84,24 @@ class SystemController extends OfficeController
         return back()->with('status', 'Office settings saved. Gateway keys stay in the environment file.');
     }
 
+    public function testEmail(Request $request): RedirectResponse
+    {
+        $staff = $this->permit($request, 'settings.manage');
+        $sent = app(\App\Services\Desk\OutboundMail::class)->send(
+            (string) $staff->email,
+            'Test email from the office',
+            'Test email',
+            ['This is a test from the office settings. If you can read it, the mailer is reaching you.'],
+            route('office.settings'),
+            'Back to settings',
+            'orders',
+            true,
+        );
+        $this->audit($staff, 'mail.test', 'employee', (string) $staff->employee_id, ['sent' => $sent]);
+
+        return back()->with('status', $sent ? 'Test email queued to '.$staff->email.'.' : 'Test email was not sent. Safe mode or the mailer stopped it. The attempt is in the mail log.');
+    }
+
     public function reports(Request $request): View
     {
         $staff = $this->permit($request, 'reports.view');

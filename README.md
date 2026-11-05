@@ -11,14 +11,14 @@ The current website can keep running while this one is tested on a subdomain suc
 | Public site | The pages a client sees: home, services, pricing, the order form, reviews, journal, sign-in. |
 | Staff office | `/office` for admins, sub-admins, editors, and writers. Two-factor is required. Journal editing stays at `/studio`. |
 | Existing database | The tables that already start with `prox_`. Customers, orders, writers, prices, payments, and wallets live there. This project does not change those tables. |
-| New tables | Tables that start with `app_`. They hold the journal, contact messages, saved briefs, password-reset links, the permission matrix, the audit log, and gateway display settings. They sit beside the old tables. |
+| New tables | Tables that start with `app_`. They hold the journal, contact messages, saved briefs, password-reset links, email preferences, the mail log, disputes, the permission matrix, the audit log, and gateway display settings. They sit beside the old tables. |
 
 ## Safety switches
 
 These live in the `.env` file on the server. Both should stay **on** until you deliberately go live.
 
 - `READ_ONLY_LEGACY=true` — the site may look at orders and sign people in, but it will not insert, update, or delete anything in a `prox_` table. A password is not rewritten, a new account is not created, and a new order is not filed in the live order book. A brief is still saved in an `app_` table so you do not lose the enquiry.
-- `SAFE_MODE=true` — the site will not send email, SMS, or a payment. A reset link, when writes are allowed, is written to the log instead of being emailed.
+- `SAFE_MODE=true` — the site will not send email, SMS, or a payment. A password-reset link is shown on the page instead of being emailed, and the attempt is stored in the mail log.
 
 There is no remote update, no licence check, and no address that signs someone in as an administrator without their password.
 

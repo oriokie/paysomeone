@@ -144,6 +144,16 @@ class CheckoutService
                 $customer = Customer::query()->find($intent->customer_id);
                 if ($customer) {
                     $applied = $this->recorder->creditWallet($customer, (float) $intent->amount, $intent->provider, $transactionId, null);
+                    app(\App\Services\Desk\OutboundMail::class)->send(
+                        (string) $customer->email,
+                        'Wallet topped up',
+                        'Wallet topped up',
+                        ['$'.number_format((float) $intent->amount, 2).' was added to your wallet.'],
+                        route('desk.wallet'),
+                        'View wallet',
+                        'payments',
+                        true,
+                    );
                 }
 
                 return;
@@ -206,6 +216,22 @@ class CheckoutService
         $intent->status = $status;
         $intent->payload = array_merge($intent->payload ?? [], ['reason' => $reason]);
         $intent->save();
+        if ($status !== 'failed') {
+            return;
+        }
+        $customer = Customer::query()->find($intent->customer_id);
+        if ($customer && $customer->email && ! str_ends_with((string) $customer->email, '@removed.invalid')) {
+            app(\App\Services\Desk\OutboundMail::class)->send(
+                (string) $customer->email,
+                'Payment was not completed',
+                'Payment was not completed',
+                [$reason, 'Order #'.($intent->order_id ?: 'wallet').' was not charged again by this notice.'],
+                $intent->order_id ? route('desk.order', $intent->order_id) : route('desk.wallet'),
+                'Review the payment',
+                'payments',
+                true,
+            );
+        }
     }
 
     private function recordExternalTip(Order $order, PaymentIntent $intent, string $transactionId): bool

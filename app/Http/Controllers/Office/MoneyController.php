@@ -7,6 +7,7 @@ use App\Models\FineType;
 use App\Models\MpesaPayout;
 use App\Models\Order;
 use App\Models\PaymentRequest;
+use App\Services\Desk\Notifier;
 use App\Services\Office\Access;
 use App\Services\Payments\MpesaB2c;
 use Illuminate\Http\RedirectResponse;
@@ -89,7 +90,15 @@ class MoneyController extends OfficeController
             ? 'Payout request recorded. Safe mode is on, so nothing was sent to M-Pesa.'
             : 'Payout request recorded. An admin still has to approve the batch before money moves.';
 
-        return back()->with('status', $message);
+        $messageText = $message;
+        foreach (\App\Models\Employee::query()->where('employee_group', \App\Models\Employee::GROUP_ADMIN)->where('is_banned', 0)->get() as $admin) {
+            app(Notifier::class)->email('payout_requested', (string) $admin->email, [
+                'amount' => number_format((float) $data['amount'], 2),
+                'writer' => $staff->getFilamentName(),
+            ], 'Payout requested', 'payments', false, route('office.earnings'));
+        }
+
+        return back()->with('status', $messageText);
     }
 
     public function approve(Request $request, PaymentRequest $payout): RedirectResponse
@@ -108,6 +117,12 @@ class MoneyController extends OfficeController
             $row->save();
         }
         $this->audit($staff, 'payout.sent', 'payment_request', (string) $payout->payment_request_id, $result);
+        $writer = \App\Models\Employee::query()->find($payout->user_id);
+        if ($writer && $writer->email) {
+            app(Notifier::class)->email('payout_approved', (string) $writer->email, [
+                'amount' => number_format((float) $payout->total_pay, 2),
+            ], 'Your payout was approved', 'payments', true, route('office.earnings'));
+        }
 
         return back()->with('status', $result['message']);
     }

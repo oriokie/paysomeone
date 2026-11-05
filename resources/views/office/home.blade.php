@@ -13,6 +13,19 @@
             </div>
         @endforeach
     </dl>
+    <section class="ui-card mt-8 p-6">
+        <h2 class="font-display text-xl tracking-tight">Due within a day</h2>
+        <ul class="mt-4 divide-y divide-slate-100">
+            @forelse ($due as $order)
+                <li class="flex items-center justify-between gap-3 py-3">
+                    <a class="font-medium" href="{{ route('office.orders.show', $order) }}">#{{ $order->order_id }} {{ $order->title }}</a>
+                    <span class="text-[13px] text-slate-500">{{ $order->writer_deadline?->diffForHumans() }}</span>
+                </li>
+            @empty
+                <li class="py-4 text-[13px] text-slate-500">Nothing in your book is due in the next day.</li>
+            @endforelse
+        </ul>
+    </section>
     <div class="mt-8 grid gap-6 lg:grid-cols-2">
         <section class="ui-card p-6">
             <h2 class="font-display text-xl tracking-tight">Recent orders</h2>

@@ -25,6 +25,7 @@ class Permissions
         'orders.deadlines' => 'Change customer and writer deadlines',
         'orders.cancel' => 'Cancel an order',
         'orders.refund' => 'Cancel or refund within the sub-admin limit',
+        'disputes.manage' => 'Resolve customer disputes',
         'files.download' => 'Download order files',
         'files.upload' => 'Upload drafts and finals',
         'files.approve' => 'Approve or return a file in review',
@@ -50,7 +51,7 @@ class Permissions
             'orders.view_all', 'orders.assign', 'orders.bids', 'orders.deadlines',
             'orders.cancel', 'orders.refund', 'files.download', 'files.upload',
             'messages.staff', 'messages.customer', 'customers.view', 'customers.pii',
-            'fines.manage', 'reports.view', 'news.view',
+            'fines.manage', 'disputes.manage', 'reports.view', 'news.view',
         ],
         Employee::GROUP_EDITOR => [
             'orders.view_review', 'files.download', 'files.upload', 'files.approve',

@@ -14,6 +14,12 @@
         </div>
         <button class="ui-btn ui-btn-primary" type="submit">Save</button>
     </form>
+    <form class="ui-card mt-6 max-w-xl space-y-3 p-6" method="POST" action="{{ route('office.settings.test-email') }}">
+        @csrf
+        <h2 class="font-display text-xl tracking-tight">Test email</h2>
+        <p class="text-[13px] text-slate-500">Sends one message to {{ $staff->email }}. Safe mode records the attempt and does not leave the server.</p>
+        <button class="ui-btn ui-btn-quiet" type="submit">Send a test email</button>
+    </form>
     <h2 class="mt-10 font-display text-xl tracking-tight">Gateways</h2>
     <p class="mt-1 text-[13px] text-slate-500">Keys stay in the environment file. Only the last four characters are shown.</p>
     <ul class="ui-card mt-3 divide-y divide-slate-100">

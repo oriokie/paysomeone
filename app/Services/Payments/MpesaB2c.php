@@ -116,6 +116,13 @@ class MpesaB2c
             $request->paid_at = now();
             $request->date_upd = now();
             $request->save();
+            $writer = \App\Models\Employee::query()->find($request->user_id);
+            if ($writer && $writer->email) {
+                app(\App\Services\Desk\Notifier::class)->email('payout_paid', (string) $writer->email, [
+                    'amount' => number_format((float) $row->amount, 2),
+                    'receipt' => $transaction,
+                ], 'Your payout was sent', 'payments', true, route('office.earnings'));
+            }
         }
 
         return true;

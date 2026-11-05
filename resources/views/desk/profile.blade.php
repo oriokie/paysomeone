@@ -40,5 +40,24 @@
             @endif
             <button class="ui-btn ui-btn-primary" type="submit">Update password</button>
         </form>
+        <form class="ui-card space-y-4 p-6 sm:p-8" method="POST" action="{{ route('desk.preferences') }}">
+            @csrf
+            <h2 class="font-display text-2xl tracking-tight text-navy">Email</h2>
+            <p class="text-[13px] text-slate-500">Order updates, messages, and payment notes can be turned off. Password resets, receipts, and security mail still send.</p>
+            <label class="flex items-center gap-2 text-[15px]"><input type="checkbox" name="orders" value="1" @checked(old('orders', $pref->orders ?? true))> Order updates</label>
+            <label class="flex items-center gap-2 text-[15px]"><input type="checkbox" name="messages" value="1" @checked(old('messages', $pref->messages ?? true))> Messages</label>
+            <label class="flex items-center gap-2 text-[15px]"><input type="checkbox" name="payments" value="1" @checked(old('payments', $pref->payments ?? true))> Payment notes</label>
+            <button class="ui-btn ui-btn-primary" type="submit">Save email preferences</button>
+        </form>
+        <section class="ui-card space-y-4 p-6 sm:p-8">
+            <h2 class="font-display text-2xl tracking-tight text-navy">Your data</h2>
+            <p class="text-[13px] text-slate-500">Download the profile, orders, and payment attempts stored for this account. It does not include anyone else.</p>
+            <a class="ui-btn ui-btn-quiet" href="{{ route('desk.export') }}">Download JSON</a>
+            <form class="space-y-3 border-t border-slate-100 pt-4" method="POST" action="{{ route('desk.deletion') }}">
+                @csrf
+                <p class="text-[13px] text-slate-500">Ask to remove the name, email, and phone on this account. Orders stay so the studio can keep its records. This signs you out when writes are allowed.</p>
+                <button class="ui-btn ui-btn-quiet" type="submit">Request account removal</button>
+            </form>
+        </section>
     </div>
 @endsection

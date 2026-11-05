@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Events\DeskEvent;
 use App\Exceptions\LegacyWriteBlocked;
 use App\Models\Customer;
+use App\Models\Employee;
 use App\Models\Order;
+use App\Models\ReviewConsent;
 use App\Models\OrderFile;
 use App\Models\OrderMessage;
 use App\Models\OrderRating;
@@ -70,6 +72,14 @@ class OrderWorkController extends Controller
         $message->save();
 
         $notifier->staff('message', 'new_message', (string) $order->order_id, 'New message on order #'.$order->order_id, (int) $customer->customer_id);
+        $recipientId = $to === Departments::WRITER ? $order->writer_id : $order->editor_id;
+        $recipient = $recipientId ? Employee::query()->find($recipientId) : null;
+        if ($recipient && $recipient->email) {
+            $notifier->email('customer_message', (string) $recipient->email, [
+                'order_id' => $order->order_id,
+                'excerpt' => mb_substr($data['body'], 0, 180),
+            ], 'New customer message on order #'.$order->order_id, 'messages', false, route('office.orders.show', $order));
+        }
         $notifier->email('order_message', (string) $customer->email, [
             'order_id' => $order->order_id,
             'message' => $data['body'],
@@ -82,9 +92,9 @@ class OrderWorkController extends Controller
         return back()->with('status', 'Message sent.')->with('tab', 'messages');
     }
 
-    public function revision(Request $request, Order $order): RedirectResponse
+    public function revision(Request $request, Order $order, Notifier $notifier): RedirectResponse
     {
-        $this->owns($request, $order);
+        $customer = $this->owns($request, $order);
         $this->writable();
         if (! in_array((int) $order->status_id, [Order::DELIVERED, Order::FINISHED], true)) {
             return back()->withErrors(['instructions' => 'A revision can be requested once the work has been delivered.']);
@@ -95,6 +105,10 @@ class OrderWorkController extends Controller
             'hours' => ['required', 'integer', 'in:3,6,12,24,48,72'],
             'file_id' => ['nullable', 'integer'],
         ]);
+
+        if (OrderRevision::query()->where('order_id', $order->order_id)->count() >= 2) {
+            return back()->withErrors(['instructions' => 'This order already has two revision requests. Write to support if something is still wrong.']);
+        }
 
         $free = true;
         if ((int) $order->status_id === Order::FINISHED && $order->approved_at) {
@@ -116,6 +130,17 @@ class OrderWorkController extends Controller
         $order->save();
 
         DeskEvent::dispatch('order.revision', (int) $order->order_id, ['revision_id' => (int) $revision->revision_id]);
+        $writer = $order->writer_id ? Employee::query()->find($order->writer_id) : null;
+        if ($writer && $writer->email) {
+            $notifier->email('revision_requested', (string) $writer->email, [
+                'order_id' => $order->order_id,
+                'title' => $order->title,
+            ], 'Revision requested on order #'.$order->order_id, 'orders', false, route('office.orders.show', $order));
+        }
+        $notifier->email('revision_customer', (string) $customer->email, [
+            'order_id' => $order->order_id,
+            'title' => $order->title,
+        ], 'We received your revision request', 'orders', false, route('desk.order', $order));
 
         return back()->with('status', $free ? 'Free revision requested.' : 'Revision requested. It may be billed because the free window has passed.')->with('tab', 'revision');
     }
@@ -132,6 +157,13 @@ class OrderWorkController extends Controller
         $order->finished_at = now();
         $order->date_upd = now();
         $order->save();
+        $customer = $request->user('customer');
+        if ($customer) {
+            app(Notifier::class)->email('order_completed', (string) $customer->email, [
+                'order_id' => $order->order_id,
+                'title' => $order->title,
+            ], 'Order #'.$order->order_id.' is finished', 'orders', false, route('desk.order', $order));
+        }
 
         return back()->with('status', 'Delivery approved. The order is finished.');
     }
@@ -145,6 +177,7 @@ class OrderWorkController extends Controller
             'paper_rating' => ['required', 'integer', 'between:1,5'],
             'comment' => ['nullable', 'string', 'max:2000'],
             'paper_on_time' => ['nullable', 'boolean'],
+            'publish' => ['nullable', 'boolean'],
         ]);
 
         $rating = OrderRating::query()->firstOrNew([
@@ -159,8 +192,14 @@ class OrderWorkController extends Controller
         $rating->date_add = $rating->date_add ?: now();
         $rating->date_upd = now();
         $rating->save();
+        ReviewConsent::query()->updateOrCreate(
+            ['rating_id' => $rating->rating_id],
+            ['customer_id' => $customer->customer_id, 'consented' => $request->boolean('publish')],
+        );
 
-        return back()->with('status', 'Thank you. The review is stored with this order.')->with('tab', 'payment');
+        return back()->with('status', $request->boolean('publish')
+            ? 'Thank you. The note can appear on the public reviews page without your name.'
+            : 'Thank you. The review stays on this order and is not public.')->with('tab', 'payment');
     }
 
     public function tip(Request $request, Order $order, CheckoutService $checkout): RedirectResponse

@@ -68,6 +68,13 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/account/profile', [DeskController::class, 'profile'])->name('desk.profile');
     Route::post('/account/profile', [DeskController::class, 'updateProfile'])->name('desk.profile.update');
     Route::post('/account/password', [DeskController::class, 'updatePassword'])->name('desk.password.update');
+    Route::post('/account/email-preferences', [\App\Http\Controllers\AccountExtrasController::class, 'preferences'])->name('desk.preferences');
+    Route::get('/account/export', [\App\Http\Controllers\AccountExtrasController::class, 'export'])->name('desk.export');
+    Route::post('/account/deletion', [\App\Http\Controllers\AccountExtrasController::class, 'deletion'])->name('desk.deletion');
+    Route::post('/account/notifications/seen', [\App\Http\Controllers\AccountExtrasController::class, 'markNotifications'])->name('desk.notifications.seen');
+    Route::post('/account/orders/{order}/reorder', [\App\Http\Controllers\AccountExtrasController::class, 'reorder'])->name('desk.reorder');
+    Route::get('/account/orders/{order}/receipt', [\App\Http\Controllers\AccountExtrasController::class, 'receipt'])->name('desk.receipt');
+    Route::post('/account/orders/{order}/dispute', [\App\Http\Controllers\AccountExtrasController::class, 'dispute'])->name('desk.dispute');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 });
 
@@ -86,3 +93,7 @@ Route::get('/payments/stripe/cancel', [PaymentController::class, 'stripeCancel']
 Route::post('/payments/pesapal/ipn', [PaymentController::class, 'pesapal'])->name('payments.pesapal');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', \App\Http\Controllers\RobotsController::class)->name('robots');
+Route::get('/health', \App\Http\Controllers\HealthController::class)->name('health');
+Route::get('/email/preferences/{email}', [\App\Http\Controllers\EmailPreferenceController::class, 'edit'])->name('email.preferences');
+Route::post('/email/preferences/{email}', [\App\Http\Controllers\EmailPreferenceController::class, 'update'])->name('email.preferences.update');

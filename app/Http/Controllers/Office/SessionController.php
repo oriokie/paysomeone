@@ -47,8 +47,12 @@ class SessionController extends OfficeController
         }
 
         $request->session()->regenerate();
-        $staff->last_login = now();
-        $staff->save();
+        try {
+            $staff->last_login = now();
+            $staff->save();
+        } catch (\App\Exceptions\LegacyWriteBlocked) {
+            // A read-only preview can still sign in. The stored last-login time stays as it is.
+        }
         StaffDevice::query()->create([
             'employee_id' => $staff->employee_id,
             'ip' => $request->ip(),
@@ -56,6 +60,16 @@ class SessionController extends OfficeController
             'created_at' => now(),
         ]);
         Auditor::write($staff, 'auth.login');
+        app(\App\Services\Desk\OutboundMail::class)->send(
+            (string) $staff->email,
+            'New sign-in to the office',
+            'New sign-in to the office',
+            ['A sign-in just used your staff password from '.$request->ip().'. If this was not you, reset the password.'],
+            route('office.forgot'),
+            'Reset password',
+            'orders',
+            true,
+        );
         session()->forget('office.2fa');
 
         return redirect()->route($staff->two_factor_enabled ? 'office.challenge' : 'office.setup');

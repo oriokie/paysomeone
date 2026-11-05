@@ -4,6 +4,7 @@ namespace App\Services\Accounts;
 
 use App\Exceptions\LegacyWriteBlocked;
 use App\Models\Customer;
+use App\Services\Desk\OutboundMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ class CustomerRegistrar
     /**
      * @param  array{name: string, email: string, password: string, phone?: string|null, subscribed?: bool}  $input
      */
+    public function __construct(private readonly OutboundMail $mail) {}
+
     public function register(array $input): Customer
     {
         if (config('legacy.read_only')) {
@@ -50,6 +53,9 @@ class CustomerRegistrar
         $customer->is_subscribed = (bool) ($input['subscribed'] ?? false);
         $customer->reg_date = now();
         $customer->save();
+        $this->mail->send($customer->email, 'Your account is open', 'Your account is open', [
+            'You can place a brief whenever you are ready. We do not take student or academic work.',
+        ], route('account'), 'Open your account', 'orders', true);
 
         return $customer;
     }

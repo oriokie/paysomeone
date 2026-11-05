@@ -101,6 +101,18 @@ class PeopleController extends OfficeController
         }
         $employee->save();
         $this->audit($staff, 'application.'.$data['decision'], 'employee', (string) $employee->employee_id);
+        if ($data['decision'] === 'approve' && $employee->email) {
+            app(\App\Services\Desk\OutboundMail::class)->send(
+                (string) $employee->email,
+                'Your application was approved',
+                'You can sign in',
+                ['Your sample was accepted. Sign in with the email and password you used on the application.'],
+                route('office.login'),
+                'Sign in',
+                'orders',
+                true,
+            );
+        }
 
         return back()->with('status', $data['decision'] === 'approve' ? 'Applicant is now a writer.' : 'Application rejected.');
     }

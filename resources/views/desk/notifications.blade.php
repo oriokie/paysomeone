@@ -3,6 +3,12 @@
 @section('heading', 'Notifications')
 
 @section('content')
+    @if ($notes->contains(fn ($note) => ! $note->is_seen))
+        <form class="mb-4" method="POST" action="{{ route('desk.notifications.seen') }}">
+            @csrf
+            <button class="ui-btn ui-btn-quiet" type="submit">Mark all as seen</button>
+        </form>
+    @endif
     <ul class="ui-card divide-y divide-slate-100">
         @forelse ($notes as $note)
             <li class="px-5 py-4">

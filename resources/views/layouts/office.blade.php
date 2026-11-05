@@ -23,6 +23,7 @@
             ['office.customers', 'Customers', 'users', $can('customers.view')],
             ['office.staff', 'Staff', 'users', $can('people.manage')],
             ['office.news', 'News', 'bell', $can('news.view') || $can('news.manage')],
+            ['office.disputes', 'Disputes', 'shield', $can('disputes.manage')],
             ['office.reports', 'Reports', 'file', $can('reports.view')],
             ['office.roles', 'Roles', 'settings', $can('roles.manage')],
             ['office.gateways', 'Gateways', 'card', $can('gateways.view')],
