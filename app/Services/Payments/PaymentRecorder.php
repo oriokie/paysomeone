@@ -3,12 +3,15 @@
 namespace App\Services\Payments;
 
 use App\Events\DeskEvent;
+use App\Models\Configuration;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Referral;
 use App\Models\WalletTransaction;
 use App\Services\Desk\Notifier;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PaymentRecorder
 {
@@ -52,11 +55,14 @@ class PaymentRecorder
             $wasUnpaid = ! $fresh->is_paid;
             $fresh->payment_method = $method;
             $fresh->total_paid = (float) $fresh->total_paid + $amount;
-            if ($wasUnpaid && $amount + 0.001 >= (float) $fresh->total) {
+                if ($wasUnpaid && $amount + 0.001 >= (float) $fresh->total) {
                 $fresh->is_paid = 1;
                 $fresh->paid_at = now();
                 if (in_array((int) $fresh->status_id, [Order::WAITING_FOR_PAYMENT, Order::FREE_INQUIRY, Order::CONFIRMATION_PENDING], true)) {
-                    $fresh->status_id = $fresh->progressive_delivery ? Order::NEW_PAID : Order::ORDER_PUBLISHED;
+                    $configured = (int) Configuration::read('NEW_ORDER_STATUS', 0);
+                    $fresh->status_id = $fresh->progressive_delivery
+                        ? Order::NEW_PAID
+                        : ($configured > 0 ? $configured : Order::ORDER_PUBLISHED);
                 }
             }
             $fresh->date_upd = now();
@@ -71,7 +77,7 @@ class PaymentRecorder
                 if ($customer) {
                     $customer->total_spent = (float) $customer->total_spent + $amount;
                     $customer->total_orders = (int) $customer->total_orders + 1;
-                    $customer->last_payment_method = null;
+                    $this->creditReferrer($customer);
                     $customer->save();
                     $this->notifier->customer((int) $customer->customer_id, 'order', 'new_payment', (string) $fresh->order_id, 'Payment received for order #'.$fresh->order_id);
                     $this->notifier->email('order_payment', (string) $customer->email, [
@@ -148,5 +154,37 @@ class PaymentRecorder
 
         $customer->wallet_balance = (float) $customer->wallet_balance - $amount;
         $customer->save();
+    }
+
+    private function creditReferrer(Customer $customer): void
+    {
+        if (! $customer->referrer_id || $customer->affiliate_used) {
+            return;
+        }
+
+        $exists = Referral::query()
+            ->where('referrer_id', $customer->referrer_id)
+            ->where('referree_id', $customer->customer_id)
+            ->exists();
+
+        if (! $exists) {
+            $referral = new Referral;
+            $referral->referrer_id = $customer->referrer_id;
+            $referral->referree_id = $customer->customer_id;
+            $referral->code = strtoupper(Str::random(8));
+            $referral->amount = 10;
+            $referral->referree_used = 1;
+            $referral->date_add = now();
+            $referral->date_upd = now();
+            $referral->save();
+
+            $referrer = Customer::query()->find($customer->referrer_id);
+            if ($referrer) {
+                $referrer->affiliate_balance = (float) $referrer->affiliate_balance + 10;
+                $referrer->save();
+            }
+        }
+
+        $customer->affiliate_used = 1;
     }
 }
