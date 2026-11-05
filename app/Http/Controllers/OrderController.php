@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deadline;
+use App\Models\Order;
 use App\Services\Orders\InquiryRecorder;
+use App\Services\Orders\OrderFileStore;
 use App\Services\Pricing\QuoteBuilder;
 use App\Support\OrderFormCatalog;
 use App\Support\RateCatalog;
@@ -20,6 +22,7 @@ class OrderController extends Controller
     {
         $rates = $catalog->grouped();
         $rates[Services::SOFTWARE] = $rates[Services::RESUMES] ?? [];
+        $catalogOptions = $form->options();
 
         return view('pages.order', [
             'options' => [
@@ -27,10 +30,18 @@ class OrderController extends Controller
                 'services' => Services::ORDERABLE,
                 'deadlines' => $rates,
                 'tiers' => WriterTiers::TIERS,
-                'catalog' => $form->options(),
+                'catalog' => $catalogOptions,
                 'quoteUrl' => route('quote'),
+                'readOnly' => (bool) config('legacy.read_only'),
+                'initialStep' => session()->has('errors') ? 5 : 1,
+                'old' => [
+                    'title' => old('title', ''),
+                    'brief' => old('brief', ''),
+                    'keywords' => old('keywords', ''),
+                    'name' => old('name', ''),
+                    'email' => old('email', ''),
+                ],
             ],
-            'catalog' => $form->options(),
         ]);
     }
 
@@ -79,6 +90,8 @@ class OrderController extends Controller
             'coupon_code' => ['nullable', 'string', 'max:40'],
             'intent' => ['nullable', 'in:pay,inquiry'],
             'terms' => ['accepted'],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'max:15360'],
         ]);
 
         $customer = $request->user('customer');
@@ -98,10 +111,36 @@ class OrderController extends Controller
         }
 
         if ($saved->legacy_order_id) {
+            $note = $this->attachFiles($request, (int) $saved->legacy_order_id, (int) $customer->customer_id);
+
             return redirect()->route('desk.order', $saved->legacy_order_id)
-                ->with('status', 'Order #'.$saved->legacy_order_id.' is in the order book. The total is $'.number_format($saved->quote_total, 2).'.');
+                ->with('status', 'Order #'.$saved->legacy_order_id.' is in the order book. The total is $'.number_format($saved->quote_total, 2).'.'.$note);
         }
 
         return redirect()->route('login')->with('status', 'Sign in before sending so the order can be filed on your account.');
+    }
+
+    private function attachFiles(Request $request, int $orderId, int $customerId): string
+    {
+        if (! $request->hasFile('attachments')) {
+            return '';
+        }
+
+        $order = Order::query()->find($orderId);
+        if (! $order) {
+            return '';
+        }
+
+        $saved = 0;
+        foreach ($request->file('attachments', []) as $file) {
+            try {
+                app(OrderFileStore::class)->store($order, $customerId, $file, 'Attached with the order');
+                $saved++;
+            } catch (\Throwable) {
+                return ' One attachment was skipped because the file type is not accepted.';
+            }
+        }
+
+        return $saved ? ' '.$saved.' attachment'.($saved === 1 ? '' : 's').' saved on the order.' : '';
     }
 }

@@ -29,6 +29,8 @@
     --color-wait-soft: #fbf3e4;
     --color-bad: #9f1239;
     --color-bad-soft: #fde8ee;
+    --color-app: #f6f5f3;
+    --color-surface: #ffffff;
 
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -288,7 +290,70 @@
     }
 
     .chat-theirs {
-        @apply mr-auto max-w-[85%] rounded-2xl rounded-bl-md bg-paper-raised px-4 py-3 text-sm leading-6 shadow-card;
+        @apply mr-auto max-w-[85%] rounded-2xl rounded-bl-md border border-slate-200/60 bg-white px-4 py-3 text-sm leading-6 text-slate-900;
+    }
+
+    .ui-label {
+        @apply mb-2 block text-[13px] font-medium text-slate-900;
+    }
+
+    .ui-hint {
+        @apply mt-2 text-[13px] leading-5 text-slate-500;
+    }
+
+    .ui-input {
+        @apply h-12 w-full rounded-xl border border-slate-200/80 bg-white px-3.5 text-[15px] text-slate-900 transition duration-150;
+    }
+
+    .ui-input:hover {
+        @apply border-slate-300;
+    }
+
+    .ui-input:focus {
+        @apply border-accent outline-none ring-4 ring-accent/15;
+    }
+
+    .ui-card {
+        @apply rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)];
+    }
+
+    .ui-btn {
+        @apply inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition duration-150;
+    }
+
+    .ui-btn:active {
+        transform: scale(0.98);
+    }
+
+    .ui-btn-primary {
+        @apply bg-navy text-white;
+    }
+
+    .ui-btn-primary:hover {
+        @apply bg-navy-800;
+    }
+
+    .ui-btn-quiet {
+        @apply bg-white text-slate-900 ring-1 ring-slate-200;
+    }
+
+    .ui-btn-quiet:hover {
+        @apply bg-slate-50;
+    }
+
+    .total-pop {
+        animation: total-pop 180ms ease;
+    }
+}
+
+@keyframes total-pop {
+    from {
+        opacity: 0.45;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
     }
 }
 
@@ -307,7 +372,12 @@
     }
 
     .btn:hover,
-    .card-hover:hover {
+    .card-hover:hover,
+    .ui-btn:active {
         transform: none;
+    }
+
+    .total-pop {
+        animation: none;
     }
 }

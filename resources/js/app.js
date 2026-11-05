@@ -1,7 +1,8 @@
 import Alpine from 'alpinejs';
-import { orderForm } from './order-form';
+import { orderForm, paymentDesk } from './order-form';
 
 Alpine.data('orderForm', orderForm);
+Alpine.data('paymentDesk', paymentDesk);
 
 window.Alpine = Alpine;
 Alpine.start();

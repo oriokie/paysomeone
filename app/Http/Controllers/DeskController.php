@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderMessage;
 use App\Models\Referral;
 use App\Models\WalletTransaction;
 use App\Support\Departments;
@@ -21,16 +22,39 @@ class DeskController extends Controller
         $customer = $this->customer($request);
         $orders = Order::query()->where('customer_id', $customer->customer_id);
 
+        $owned = Order::query()->where('customer_id', $customer->customer_id)->select('order_id');
+
         return view('desk.home', [
             'customer' => $customer,
-            'orders' => (clone $orders)->forCustomerTab('recent')->orderByDesc('order_id')->limit(8)->get(),
+            'orders' => (clone $orders)->forCustomerTab('recent')->orderByDesc('order_id')->limit(6)->get(),
             'unpaid' => (clone $orders)->forCustomerTab('unpaid')->count(),
             'open' => (clone $orders)->whereNotIn('status_id', [Order::FINISHED, Order::CANCELLED])->count(),
+            'unpaidOrders' => (clone $orders)->forCustomerTab('unpaid')->orderByDesc('order_id')->limit(4)->get(),
+            'ready' => (clone $orders)->where('status_id', Order::DELIVERED)->orderByDesc('order_id')->limit(4)->get(),
+            'revisions' => (clone $orders)->where('status_id', Order::REVISION)->orderByDesc('order_id')->limit(4)->get(),
+            'messages' => OrderMessage::query()->with('order')->whereIn('order_id', $owned)->where('is_deleted', 0)->orderByDesc('date_add')->limit(4)->get(),
+            'unreadMessages' => $this->unreadMessages($customer),
             'alerts' => Notification::query()
                 ->where('to_department', (string) Departments::CUSTOMER)
                 ->where('to_user_id', $customer->customer_id)
                 ->where('is_seen', 0)
                 ->count(),
+        ]);
+    }
+
+    public function messages(Request $request): View
+    {
+        $customer = $this->customer($request);
+        $owned = Order::query()->where('customer_id', $customer->customer_id)->select('order_id');
+        $messages = OrderMessage::query()
+            ->with('order')
+            ->whereIn('order_id', $owned)
+            ->where('is_deleted', 0)
+            ->orderByDesc('date_add')
+            ->paginate(20);
+
+        return view('desk.messages', [
+            'messages' => $messages,
         ]);
     }
 
@@ -50,10 +74,17 @@ class DeskController extends Controller
             ->paginate(12)
             ->withQueryString();
 
+        $counts = [];
+        $base = Order::query()->where('customer_id', $customer->customer_id);
+        foreach (array_keys(OrderStatuses::TABS) as $tab) {
+            $counts[$tab] = (clone $base)->forCustomerTab($tab)->count();
+        }
+
         return view('desk.orders', [
             'orders' => $orders,
             'status' => $status,
             'filters' => OrderStatuses::TABS,
+            'counts' => $counts,
         ]);
     }
 
@@ -82,6 +113,11 @@ class DeskController extends Controller
         return view('desk.wallet', [
             'customer' => $customer,
             'transactions' => WalletTransaction::query()->where('customer_id', $customer->customer_id)->orderByDesc('date_add')->limit(30)->get(),
+            'tipOrder' => Order::query()
+                ->where('customer_id', $customer->customer_id)
+                ->whereIn('status_id', [Order::DELIVERED, Order::FINISHED])
+                ->orderByDesc('order_id')
+                ->first(),
         ]);
     }
 
@@ -144,6 +180,18 @@ class DeskController extends Controller
         $customer->save();
 
         return back()->with('status', 'Password updated. The current website can still check this password.');
+    }
+
+    private function unreadMessages(Customer $customer): int
+    {
+        $owned = Order::query()->where('customer_id', $customer->customer_id)->select('order_id');
+
+        return OrderMessage::query()
+            ->whereIn('order_id', $owned)
+            ->where('to_department', (string) Departments::CUSTOMER)
+            ->where('is_viewed', 0)
+            ->where('is_deleted', 0)
+            ->count();
     }
 
     private function customer(Request $request): Customer

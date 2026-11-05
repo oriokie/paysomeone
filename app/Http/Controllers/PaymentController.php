@@ -34,7 +34,14 @@ class PaymentController extends Controller
             return redirect()->away($result['redirect']);
         }
 
-        return back()->with('status', $result['message']);
+        $phase = 'failed';
+        if (str_contains($result['message'], 'M-Pesa prompt') || str_contains($result['message'], 'Check the phone')) {
+            $phase = 'waiting';
+        } elseif (str_starts_with($result['message'], 'Paid')) {
+            $phase = 'success';
+        }
+
+        return back()->with('status', $result['message'])->with('pay_phase', $phase)->with('tab', 'payment');
     }
 
     public function mpesa(Request $request, MpesaDriver $driver): \Illuminate\Http\JsonResponse

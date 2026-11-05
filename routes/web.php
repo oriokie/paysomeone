@@ -45,6 +45,7 @@ Route::middleware('guest:customer')->group(function () {
 Route::middleware('auth:customer')->group(function () {
     Route::get('/account', [DeskController::class, 'home'])->name('account');
     Route::get('/account/orders', [DeskController::class, 'orders'])->name('desk.orders');
+    Route::get('/account/messages', [DeskController::class, 'messages'])->name('desk.messages');
     Route::get('/account/orders/{order}', [DeskController::class, 'show'])->name('desk.order');
     Route::post('/account/orders/{order}/files', [OrderWorkController::class, 'upload'])->name('desk.files.store');
     Route::get('/account/orders/{order}/files/{file}', [OrderWorkController::class, 'download'])->name('desk.files.download');

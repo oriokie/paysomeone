@@ -5,7 +5,11 @@ namespace App\Providers;
 use App\Auth\LegacyHasher;
 use App\Auth\LegacyUserProvider;
 use App\Exceptions\LegacyWriteBlocked;
+use App\Models\Notification;
+use App\Models\Order;
+use App\Models\OrderMessage;
 use App\Models\Site;
+use App\Support\Departments;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -68,6 +72,42 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteName', $name);
             $view->with('readOnly', (bool) config('legacy.read_only'));
             $view->with('safeMode', (bool) config('legacy.safe_mode'));
+        });
+
+        View::composer('layouts.desk', function ($view): void {
+            $notes = collect();
+            $unreadNotes = 0;
+            $unreadMessages = 0;
+            $customer = auth('customer')->user();
+
+            if ($customer) {
+                try {
+                    $notes = Notification::query()
+                        ->where('to_department', (string) Departments::CUSTOMER)
+                        ->where('to_user_id', $customer->customer_id)
+                        ->orderByDesc('date_add')
+                        ->limit(5)
+                        ->get();
+                    $unreadNotes = Notification::query()
+                        ->where('to_department', (string) Departments::CUSTOMER)
+                        ->where('to_user_id', $customer->customer_id)
+                        ->where('is_seen', 0)
+                        ->count();
+                    $owned = Order::query()->where('customer_id', $customer->customer_id)->select('order_id');
+                    $unreadMessages = OrderMessage::query()
+                        ->whereIn('order_id', $owned)
+                        ->where('to_department', (string) Departments::CUSTOMER)
+                        ->where('is_viewed', 0)
+                        ->where('is_deleted', 0)
+                        ->count();
+                } catch (\Throwable) {
+                    $notes = collect();
+                }
+            }
+
+            $view->with('deskNotes', $notes);
+            $view->with('deskUnread', $unreadNotes);
+            $view->with('deskUnreadMessages', $unreadMessages);
         });
     }
 }
