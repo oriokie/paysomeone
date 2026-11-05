@@ -9,9 +9,9 @@ namespace App\Support;
 class WriterTiers
 {
     public const TIERS = [
-        2 => ['label' => 'Best available', 'percent' => 0, 'detail' => 'We match a writer to the brief.'],
-        3 => ['label' => 'Senior specialist', 'percent' => 25, 'detail' => 'A high-ranked writer in the subject. Adds 25%.'],
-        4 => ['label' => 'Native English writer', 'percent' => 30, 'detail' => 'A writer from the US, UK, Canada, or Australia. Adds 30%.'],
+        2 => ['label' => 'Best available', 'percent' => 0, 'detail' => 'Best available'],
+        3 => ['label' => 'ESL advanced', 'percent' => 25, 'detail' => 'High-rank professional writer. Adds 25%.'],
+        4 => ['label' => 'ENL (English as a native language)', 'percent' => 30, 'detail' => 'Writers from the US, UK, Canada, or Australia. Adds 30%.'],
     ];
 
     public static function percent(int $id): int

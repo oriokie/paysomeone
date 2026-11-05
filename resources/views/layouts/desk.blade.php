@@ -30,7 +30,7 @@
         <div class="min-w-0">
             <header class="flex items-center justify-between border-b border-line bg-paper/80 px-5 py-4 backdrop-blur lg:hidden">
                 <a href="{{ route('account') }}" class="font-display text-lg text-navy">Desk</a>
-                <a href="{{ route('order.create') }}" class="btn btn-primary">New brief</a>
+                <a href="{{ route('order.create') }}" class="btn btn-primary">New order</a>
             </header>
             <main id="content" class="px-5 py-8 pb-28 lg:px-10 lg:pb-12">
                 @yield('content')

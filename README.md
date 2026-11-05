@@ -102,10 +102,14 @@ See [docs/cpanel.md](docs/cpanel.md). Keep `READ_ONLY_LEGACY` and `SAFE_MODE` tr
 
 ## Customer desk
 
-Signed-in clients use `/account`.
+Signed-in clients use `/account`. The desk follows the current site’s customer order list and order page: Recent, Unpaid, Finished, and Canceled; order tabs for details, files, messages, bids, revision, and payment; the same status names (Waiting for payment, New Paid, Looking for writer, Writer Assigned, and the rest).
 
-- Orders, with the same statuses as the current site, and filters for payment, enquiry, progress, delivery, revision, finished, cancelled, and dispute.
-- An order page with the brief, files, messages to support or the assigned writer, a revision request, a rating, and a tip.
+The order form uses the current field order for article writing (type of content, title, instructions, keywords, deadline, words, writer category, English type, target audience, writing tone, writing style, content feel, coupon) and, for page work, pages, slides, charts, spacing, sources, and the same extras. Programming adds software and a deliverable. Academic level, citation format, subject, and student paper types are not on the form. An existing order that already has those fields still shows them, read-only.
+
+Required columns that the form no longer collects are filled with the defaults in `App\Support\OrderDefaults`: academic level `0`, citation format `4` (“Not applicable”), subject `52` (“Professional”). Article orders store `order_type` `article`. Page and programming orders store `academic`, which is the table default the current page form leaves in place. The customer sees the service they chose, not that column. Programming is priced on the page rate card and the tool name is stored in `software`. The current programming form prices by task size; that price list is not used here. Payment is chosen on the order page, after the order exists.
+
+- Orders, with the same statuses as the current site.
+- An order page with the brief, files, messages to support or the assigned writer, writer bids, a revision request, a rating, and a tip.
 - Files are stored outside the website folder. The path saved in `prox_order_file.source` is relative to `LEGACY_UPLOADS_PATH`. Point that setting at the current site’s uploads folder and both sites open the same files. A client can only open files on their own orders.
 - Wallet balance and transactions, referrals, alerts, and profile or password.
 - While `READ_ONLY_LEGACY` is true, the order form still shows a price and then refuses to file the order. Nothing is written to `prox_order`.

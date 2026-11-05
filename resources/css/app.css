@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+[x-cloak] {
+    display: none !important;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -149,6 +153,22 @@
 
     .label {
         @apply block text-sm font-medium text-ink;
+    }
+
+    .form-row {
+        @apply grid gap-1.5 border-b border-line py-4 sm:grid-cols-[12.5rem_1fr] sm:items-start sm:gap-6;
+    }
+
+    .choice {
+        @apply flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-paper-raised p-3 text-sm transition duration-200;
+    }
+
+    .choice:hover {
+        @apply border-line-strong;
+    }
+
+    .choice:has(:checked) {
+        @apply border-navy ring-4 ring-navy/10;
     }
 
     .card {

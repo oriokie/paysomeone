@@ -23,7 +23,7 @@ class QuoteBuilder
     {
         $service = (string) ($input['service'] ?? '');
 
-        if (! isset(Services::ALL[$service])) {
+        if (! Services::known($service)) {
             throw ValidationException::withMessages(['service' => 'Choose a service.']);
         }
 
@@ -68,8 +68,8 @@ class QuoteBuilder
             pricePerPage: (float) $deadline->price_per_page,
             hours: (int) $deadline->hrs_customer,
             pages: $pages,
-            slides: 0,
-            charts: 0,
+            slides: $this->units($input, 'slides'),
+            charts: $this->units($input, 'charts'),
             spacing: $spacing,
             writerPercent: $percent,
             writerCategoryId: $tier,
@@ -85,6 +85,20 @@ class QuoteBuilder
             coupon: $coupon,
             payout: $payout,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function units(array $input, string $key): int
+    {
+        $value = (int) ($input[$key] ?? 0);
+
+        if ($value < 0 || $value > 100) {
+            throw ValidationException::withMessages([$key => 'Enter a number from 0 to 100.']);
+        }
+
+        return $value;
     }
 
     private function coupon(?string $code): ?CouponSpec

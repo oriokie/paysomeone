@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Deadline;
 use App\Services\Orders\InquiryRecorder;
 use App\Services\Pricing\QuoteBuilder;
+use App\Support\OrderFormCatalog;
 use App\Support\RateCatalog;
 use App\Support\Services;
 use App\Support\WriterTiers;
@@ -15,16 +16,21 @@ use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function create(RateCatalog $catalog): View
+    public function create(RateCatalog $catalog, OrderFormCatalog $form): View
     {
+        $rates = $catalog->grouped();
+        $rates[Services::SOFTWARE] = $rates[Services::RESUMES] ?? [];
+
         return view('pages.order', [
             'options' => [
                 'defaultService' => Services::ARTICLES,
-                'services' => Services::ALL,
-                'deadlines' => $catalog->grouped(),
+                'services' => Services::ORDERABLE,
+                'deadlines' => $rates,
                 'tiers' => WriterTiers::TIERS,
+                'catalog' => $form->options(),
                 'quoteUrl' => route('quote'),
             ],
+            'catalog' => $form->options(),
         ]);
     }
 
@@ -46,8 +52,21 @@ class OrderController extends Controller
             'email' => [$request->user('customer') ? 'nullable' : 'required', 'email', 'max:255'],
             'words' => ['nullable', 'integer'],
             'pages' => ['nullable', 'integer'],
+            'slides' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'charts' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'sources_count' => ['nullable', 'integer', 'min:0', 'max:100'],
             'spacing' => ['nullable', 'in:single,double'],
             'writer_category_id' => ['nullable', 'integer'],
+            'paper_type_id' => ['nullable', 'integer'],
+            'keywords' => ['nullable', 'string', 'max:255'],
+            'english_type_id' => ['nullable', 'integer'],
+            'target_audience_id' => ['nullable', 'integer'],
+            'writing_tone_id' => ['nullable', 'integer'],
+            'writing_style_id' => ['nullable', 'integer'],
+            'content_feel_id' => ['nullable', 'integer'],
+            'software' => ['nullable', 'string', 'max:255'],
+            'deliverable_id' => ['nullable', 'integer'],
+            'gmt' => ['nullable', 'integer'],
             'preferred_writer' => ['nullable', 'boolean'],
             'samples' => ['nullable', 'boolean'],
             'progressive' => ['nullable', 'boolean'],

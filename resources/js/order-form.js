@@ -1,18 +1,31 @@
 export function orderForm(options) {
+    const catalog = options.catalog || {};
+
     return {
         options,
+        catalog,
         service: options.defaultService,
         deadlineId: options.deadlines[options.defaultService]?.[0]?.id ?? '',
         words: 800,
         pages: 2,
+        slides: 0,
+        charts: 0,
         spacing: 'double',
         writerCategoryId: 2,
+        paperTypeId: catalog.articles?.[0]?.id ?? '',
+        englishTypeId: catalog.englishTypes?.[0]?.id ?? '',
+        targetAudienceId: catalog.audiences?.[0]?.id ?? '',
+        writingToneId: catalog.tones?.[0]?.id ?? '',
+        writingStyleId: catalog.styles?.[0]?.id ?? '',
+        contentFeelId: catalog.feels?.[0]?.id ?? '',
+        software: catalog.software?.[0]?.title ?? '',
+        deliverableId: catalog.deliverables?.[0]?.id ?? '',
         preferredWriter: false,
         samples: false,
         progressive: false,
         sources: false,
         complex: false,
-        proofreading: options.defaultService === 'editing',
+        proofreading: false,
         vip: false,
         plagiarism: false,
         outline: false,
@@ -21,13 +34,14 @@ export function orderForm(options) {
         error: '',
         loading: false,
         timer: null,
-        step: options.initialStep || 1,
 
         init() {
             this.schedule();
             this.$watch('service', () => {
                 const list = this.options.deadlines[this.service] || [];
                 this.deadlineId = list[0]?.id ?? '';
+                const types = this.paperTypes;
+                this.paperTypeId = types[0]?.id ?? '';
                 this.proofreading = this.service === 'editing';
                 this.schedule();
             });
@@ -37,8 +51,20 @@ export function orderForm(options) {
             return this.service === 'articles';
         },
 
+        get isSoftware() {
+            return this.service === 'software';
+        },
+
+        get isPages() {
+            return ! this.usesWords && ! this.isSoftware;
+        },
+
         get deadlines() {
             return this.options.deadlines[this.service] || [];
+        },
+
+        get paperTypes() {
+            return this.usesWords ? (this.catalog.articles || []) : (this.catalog.documents || []);
         },
 
         schedule() {
@@ -69,6 +95,8 @@ export function orderForm(options) {
                         deadline_id: this.deadlineId,
                         words: this.words,
                         pages: this.pages,
+                        slides: this.slides,
+                        charts: this.charts,
                         spacing: this.spacing,
                         writer_category_id: this.writerCategoryId,
                         preferred_writer: this.preferredWriter,
@@ -104,14 +132,6 @@ export function orderForm(options) {
         money(amount) {
             const value = Number(amount || 0);
             return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-        },
-
-        next() {
-            this.step = Math.min(3, this.step + 1);
-        },
-
-        back() {
-            this.step = Math.max(1, this.step - 1);
         },
     };
 }

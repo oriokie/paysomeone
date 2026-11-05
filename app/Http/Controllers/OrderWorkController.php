@@ -32,7 +32,7 @@ class OrderWorkController extends Controller
         $file = $files->store($order, (int) $customer->customer_id, $data['upload'], (string) ($data['description'] ?? ''));
         $notifier->staff('file', 'file', (string) $order->order_id, 'A file was added to order #'.$order->order_id, (int) $customer->customer_id);
 
-        return back()->with('status', 'File saved as '.$file->source.'. The current site can open it from the shared uploads folder.');
+        return back()->with('status', 'File saved as '.$file->source.'. The current site can open it from the shared uploads folder.')->with('tab', 'files');
     }
 
     public function download(Request $request, Order $order, OrderFile $file, OrderFileStore $files): StreamedResponse
@@ -79,7 +79,7 @@ class OrderWorkController extends Controller
 
         DeskEvent::dispatch('order.message', (int) $order->order_id, ['message_id' => (int) $message->message_id]);
 
-        return back()->with('status', 'Message sent.');
+        return back()->with('status', 'Message sent.')->with('tab', 'messages');
     }
 
     public function revision(Request $request, Order $order): RedirectResponse
@@ -117,7 +117,7 @@ class OrderWorkController extends Controller
 
         DeskEvent::dispatch('order.revision', (int) $order->order_id, ['revision_id' => (int) $revision->revision_id]);
 
-        return back()->with('status', $free ? 'Free revision requested.' : 'Revision requested. It may be billed because the free window has passed.');
+        return back()->with('status', $free ? 'Free revision requested.' : 'Revision requested. It may be billed because the free window has passed.')->with('tab', 'revision');
     }
 
     public function rate(Request $request, Order $order): RedirectResponse
@@ -144,7 +144,7 @@ class OrderWorkController extends Controller
         $rating->date_upd = now();
         $rating->save();
 
-        return back()->with('status', 'Thank you. The review is stored with this order.');
+        return back()->with('status', 'Thank you. The review is stored with this order.')->with('tab', 'payment');
     }
 
     public function tip(Request $request, Order $order, CheckoutService $checkout): RedirectResponse
@@ -152,7 +152,7 @@ class OrderWorkController extends Controller
         $customer = $this->owns($request, $order);
         $data = $request->validate(['amount' => ['required', 'numeric', 'min:1', 'max:500']]);
 
-        return back()->with('status', $checkout->tipFromWallet($order, $customer, (float) $data['amount']));
+        return back()->with('status', $checkout->tipFromWallet($order, $customer, (float) $data['amount']))->with('tab', 'payment');
     }
 
     private function owns(Request $request, Order $order): Customer

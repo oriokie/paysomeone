@@ -2,13 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicLevel;
+use App\Models\ContentFeel;
 use App\Models\Customer;
 use App\Models\Deadline;
+use App\Models\Discipline;
+use App\Models\EnglishType;
 use App\Models\Order;
 use App\Models\OrderFile;
+use App\Models\PaperFormat;
+use App\Models\PaperType;
 use App\Models\Payment;
 use App\Models\PaymentIntent;
+use App\Models\TargetAudience;
+use App\Models\WritingStyle;
+use App\Models\WritingTone;
 use App\Services\Orders\OrderFileStore;
+use App\Support\OrderDefaults;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
@@ -167,6 +177,153 @@ class DeskTest extends TestCase
 
         $this->assertSame(1, Payment::query()->where('transaction_id', 'RCPT1')->count());
         $this->assertSame(15.0, (float) $order->fresh()->total_paid);
+    }
+
+    #[Test]
+    public function a_new_order_writes_the_current_columns_without_academic_choices(): void
+    {
+        config(['legacy.read_only' => false]);
+        $customer = $this->customer('columns@example.test');
+        $deadline = $this->deadline();
+        $type = PaperType::query()->create([
+            'title' => 'Board memo',
+            'is_article_writing' => 1,
+            'is_academic_writing' => 0,
+            'date_add' => now(),
+            'date_upd' => now(),
+        ]);
+        $essay = PaperType::query()->create([
+            'title' => 'Admission essay',
+            'is_article_writing' => 0,
+            'is_academic_writing' => 1,
+            'date_add' => now(),
+            'date_upd' => now(),
+        ]);
+        $english = EnglishType::query()->create(['title' => 'American', 'date_add' => now(), 'date_upd' => now()]);
+        $audience = TargetAudience::query()->create(['title' => 'Executives', 'date_add' => now(), 'date_upd' => now()]);
+        $tone = WritingTone::query()->create(['title' => 'Professional', 'description' => 'Plain.', 'date_add' => now(), 'date_upd' => now()]);
+        $style = WritingStyle::query()->create(['title' => 'Informative', 'description' => 'Explains.', 'date_add' => now(), 'date_upd' => now()]);
+        $feel = ContentFeel::query()->create(['title' => 'Straightforward', 'description' => 'No decoration.', 'date_add' => now(), 'date_upd' => now()]);
+
+        $this->actingAs($customer, 'customer')
+            ->get('/order')
+            ->assertOk()
+            ->assertSee('Type of content')
+            ->assertSee('Target audience')
+            ->assertSee('Writing tone')
+            ->assertSee('Board memo')
+            ->assertDontSee('Admission essay')
+            ->assertDontSee('name="academiclevel"', false)
+            ->assertDontSee('name="paperformat"', false);
+
+        $this->actingAs($customer, 'customer')->post('/order', [
+            'service' => 'articles',
+            'deadline_id' => $deadline->deadline_id,
+            'words' => 500,
+            'intent' => 'pay',
+            'title' => 'Board update columns',
+            'brief' => 'A board update for the leadership team, with the decision we need from them.',
+            'terms' => '1',
+            'paper_type_id' => $essay->paper_type_id,
+            'keywords' => 'board, decision',
+        ])->assertSessionHasErrors('paper_type_id');
+
+        $this->actingAs($customer, 'customer')->post('/order', [
+            'service' => 'articles',
+            'deadline_id' => $deadline->deadline_id,
+            'words' => 500,
+            'writer_category_id' => 3,
+            'intent' => 'pay',
+            'title' => 'Board update columns',
+            'brief' => 'A board update for the leadership team, with the decision we need from them.',
+            'terms' => '1',
+            'paper_type_id' => $type->paper_type_id,
+            'keywords' => 'board, decision',
+            'english_type_id' => $english->english_type_id,
+            'target_audience_id' => $audience->target_audience_id,
+            'writing_tone_id' => $tone->writing_tone_id,
+            'writing_style_id' => $style->writing_style_id,
+            'content_feel_id' => $feel->content_feel_id,
+        ])->assertRedirect();
+
+        $order = Order::query()->where('title', 'Board update columns')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(Order::SERVICE_ARTICLE, (int) $order->service_type);
+        $this->assertSame('article', $order->order_type);
+        $this->assertSame((int) $type->paper_type_id, (int) $order->paper_type_id);
+        $this->assertSame('Board memo', $order->paper_type_option);
+        $this->assertSame(500, (int) $order->words);
+        $this->assertSame('board, decision', $order->keywords);
+        $this->assertSame((int) $english->english_type_id, (int) $order->english_type_id);
+        $this->assertSame((int) $audience->target_audience_id, (int) $order->target_audience_id);
+        $this->assertSame((int) $tone->writing_tone_id, (int) $order->writing_tone_id);
+        $this->assertSame((int) $style->writing_style_id, (int) $order->writing_style_id);
+        $this->assertSame((int) $feel->content_feel_id, (int) $order->content_feel_id);
+        $this->assertSame(3, (int) $order->writer_category_id);
+        $this->assertSame(25, (int) $order->writer_percent);
+        $this->assertSame(OrderDefaults::ACADEMIC_LEVEL_ID, (int) $order->academic_level_id);
+        $this->assertSame(OrderDefaults::PAPER_FORMAT_ID, (int) $order->paper_format_id);
+        $this->assertSame(OrderDefaults::PAPER_FORMAT_OPTION, $order->paper_format_option);
+        $this->assertSame(OrderDefaults::TOPIC_CATEGORY_ID, (int) $order->topic_category_id);
+        $this->assertSame(OrderDefaults::TOPIC_CATEGORY_OPTION, $order->topic_category_option);
+        $this->assertSame('double', $order->spacing);
+        $this->assertSame(Order::WAITING_FOR_PAYMENT, (int) $order->status_id);
+    }
+
+    #[Test]
+    public function a_legacy_academic_order_renders_its_recorded_fields_read_only(): void
+    {
+        config(['legacy.read_only' => false]);
+        $customer = $this->customer('legacy@example.test');
+        $level = AcademicLevel::query()->create([
+            'title' => 'Undergraduate (years 3-4)',
+            'short_title' => 'Undergrad',
+            'date_add' => now(),
+            'date_upd' => now(),
+        ]);
+        $format = PaperFormat::query()->create([
+            'title' => 'APA',
+            'date_add' => now(),
+            'date_upd' => now(),
+        ]);
+        $subject = Discipline::query()->create([
+            'title' => 'Finance legacy',
+            'group_id' => 0,
+            'is_academic_writing' => 1,
+            'is_article_writing' => 0,
+            'date_add' => now(),
+            'date_upd' => now(),
+        ]);
+
+        $order = $this->order($customer);
+        $order->service_type = Order::SERVICE_PAGES;
+        $order->form_type = 'academic';
+        $order->order_type = 'academic';
+        $order->academic_level_id = $level->academic_level_id;
+        $order->paper_format_id = $format->paper_format_id;
+        $order->paper_format_option = 'APA';
+        $order->topic_category_id = $subject->discipline_id;
+        $order->topic_category_option = 'Finance legacy';
+        $order->paper_type_option = 'Research paper';
+        $order->pages = 6;
+        $order->title = 'Existing finance paper';
+        $order->status_id = Order::DELIVERED;
+        $order->save();
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('desk.order', $order))
+            ->assertOk()
+            ->assertSee('Existing finance paper')
+            ->assertSee('Academic Writing')
+            ->assertSee('Recorded on the previous form')
+            ->assertSee('Undergraduate (years 3-4)')
+            ->assertSee('APA')
+            ->assertSee('Finance legacy')
+            ->assertSee('Research paper')
+            ->assertSee('Delivered')
+            ->assertDontSee('name="academic_level"', false)
+            ->assertSee('Bids')
+            ->assertSee('Looking for writer');
     }
 
     private function customer(string $email): Customer

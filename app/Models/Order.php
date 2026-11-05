@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\OrderStatuses;
+use App\Support\Services;
+use App\Support\WriterTiers;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -49,24 +53,7 @@ class Order extends LegacyModel
 
     public const SERVICE_ARTICLE = 52;
 
-    public const STATUSES = [
-        self::WAITING_FOR_PAYMENT => 'Waiting for payment',
-        self::DISPUTE => 'Dispute',
-        self::CONFIRMATION_PENDING => 'Confirmation pending',
-        self::WRITER_ASSIGNED => 'Writer assigned',
-        self::WRITER_ACCEPTED => 'Writer accepted',
-        self::DONE => 'Done',
-        self::CANCELLED => 'Cancelled',
-        self::FINISHED => 'Finished',
-        self::DELIVERED => 'Delivered',
-        self::NEW_PAID => 'New paid order',
-        self::FREE_INQUIRY => 'Inquiry',
-        self::REVISION => 'Revision',
-        self::REPLY_PENDING => 'Reply pending',
-        self::INQUIRY_PUBLISHED => 'Inquiry published',
-        self::INQUIRY_WRITER_ACCEPTED => 'Inquiry writer accepted',
-        self::ORDER_PUBLISHED => 'Published to writers',
-    ];
+    public const STATUSES = OrderStatuses::TITLES;
 
     protected $table = 'prox_order';
 
@@ -99,7 +86,59 @@ class Order extends LegacyModel
 
     public function statusLabel(): string
     {
-        return self::STATUSES[(int) $this->status_id] ?? 'Status '.$this->status_id;
+        return OrderStatuses::title((int) $this->status_id);
+    }
+
+    public function statusDescription(): string
+    {
+        return OrderStatuses::description((int) $this->status_id);
+    }
+
+    /**
+     * What the customer sees. A legacy page order with an academic level
+     * keeps the current site's "Academic Writing" label. New professional
+     * orders use the service they chose, even when service_type is 37.
+     */
+    public function serviceLabel(): string
+    {
+        if ((int) $this->academic_level_id > 0 && (int) $this->service_type === self::SERVICE_PAGES) {
+            return OrderStatuses::serviceTitle(self::SERVICE_PAGES);
+        }
+
+        $form = (string) $this->form_type;
+        if (isset(Services::ORDERABLE[$form])) {
+            return Services::ORDERABLE[$form];
+        }
+
+        return OrderStatuses::serviceTitle((int) $this->service_type);
+    }
+
+    public function writerCategoryLabel(): string
+    {
+        return WriterTiers::TIERS[(int) $this->writer_category_id]['label'] ?? 'Best available';
+    }
+
+    public function showsAcademicRecord(): bool
+    {
+        return (int) $this->academic_level_id > 0
+            || ((int) $this->paper_format_id > 0 && (int) $this->paper_format_id !== 4)
+            || ((int) $this->topic_category_id > 0 && (int) $this->topic_category_id !== 52);
+    }
+
+    public function scopeForCustomerTab(Builder $query, string $tab): Builder
+    {
+        return match ($tab) {
+            'unpaid' => $query->where('status_id', self::WAITING_FOR_PAYMENT),
+            'finished' => $query->where('status_id', self::FINISHED),
+            'cancelled' => $query->where('status_id', self::CANCELLED),
+            default => $query->where(function (Builder $inner) {
+                $inner->whereIn('status_id', OrderStatuses::RECENT)
+                    ->orWhere(function (Builder $week) {
+                        $week->where('date_add', '>=', now()->subWeek())
+                            ->where('status_id', '!=', self::CANCELLED);
+                    });
+            }),
+        };
     }
 
     public function customer(): BelongsTo
@@ -135,6 +174,31 @@ class Order extends LegacyModel
     public function paperFormat(): BelongsTo
     {
         return $this->belongsTo(PaperFormat::class, 'paper_format_id', 'paper_format_id');
+    }
+
+    public function englishType(): BelongsTo
+    {
+        return $this->belongsTo(EnglishType::class, 'english_type_id', 'english_type_id');
+    }
+
+    public function targetAudience(): BelongsTo
+    {
+        return $this->belongsTo(TargetAudience::class, 'target_audience_id', 'target_audience_id');
+    }
+
+    public function writingTone(): BelongsTo
+    {
+        return $this->belongsTo(WritingTone::class, 'writing_tone_id', 'writing_tone_id');
+    }
+
+    public function writingStyle(): BelongsTo
+    {
+        return $this->belongsTo(WritingStyle::class, 'writing_style_id', 'writing_style_id');
+    }
+
+    public function contentFeel(): BelongsTo
+    {
+        return $this->belongsTo(ContentFeel::class, 'content_feel_id', 'content_feel_id');
     }
 
     public function deadline(): BelongsTo
