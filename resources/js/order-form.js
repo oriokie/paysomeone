@@ -21,6 +21,7 @@ export function orderForm(options) {
         error: '',
         loading: false,
         timer: null,
+        step: options.initialStep || 1,
 
         init() {
             this.schedule();
@@ -103,6 +104,14 @@ export function orderForm(options) {
         money(amount) {
             const value = Number(amount || 0);
             return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        },
+
+        next() {
+            this.step = Math.min(3, this.step + 1);
+        },
+
+        back() {
+            this.step = Math.max(1, this.step - 1);
         },
     };
 }
