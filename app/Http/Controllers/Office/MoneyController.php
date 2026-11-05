@@ -159,7 +159,7 @@ class MoneyController extends OfficeController
         $row = new CreditFine;
         $row->type = 'fine';
         $row->employee_id = $data['employee_id'];
-        $row->order_id = $data['order_id'] ?: null;
+        $row->order_id = ($data['order_id'] ?? null) ?: null;
         $row->amount = $amount;
         $row->description = $type->name;
         $row->date_add = now();
@@ -198,7 +198,7 @@ class MoneyController extends OfficeController
         $row = new CreditFine;
         $row->type = $data['type'];
         $row->employee_id = $data['employee_id'];
-        $row->order_id = $data['order_id'] ?: null;
+        $row->order_id = ($data['order_id'] ?? null) ?: null;
         $row->amount = $data['amount'];
         $row->description = $data['description'];
         $row->date_add = now();

@@ -42,6 +42,8 @@ class MpesaDriver
             ->json('access_token');
 
         if (! $token) {
+            $this->checkout->fail($intent->reference, 'M-Pesa did not accept the sandbox login.');
+
             return ['ok' => false, 'message' => 'M-Pesa did not accept the sandbox login. Check the consumer key and secret.', 'reference' => null];
         }
 
@@ -62,6 +64,8 @@ class MpesaDriver
 
         $checkoutId = $response->json('CheckoutRequestID');
         if (! $checkoutId) {
+            $this->checkout->fail($intent->reference, 'M-Pesa did not start the prompt.');
+
             return ['ok' => false, 'message' => 'M-Pesa did not start the prompt. '.$response->json('errorMessage', ''), 'reference' => null];
         }
 
