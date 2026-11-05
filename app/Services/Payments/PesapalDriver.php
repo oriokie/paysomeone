@@ -16,7 +16,7 @@ class PesapalDriver
      */
     public function start(Customer $customer, Order $order): array
     {
-        if ($reason = $this->checkout->providerBlocked()) {
+        if ($reason = $this->checkout->providerBlocked() ?? $this->checkout->gatewayClosed('pesapal')) {
             return ['ok' => false, 'message' => $reason, 'redirect' => null];
         }
 
@@ -58,23 +58,41 @@ class PesapalDriver
 
     public function ipn(Request $request): \Illuminate\Http\Response
     {
-        $tracking = (string) $request->input('OrderTrackingId', '');
-        $reference = (string) $request->input('OrderMerchantReference', '');
-        $payload = $tracking.'|'.$reference;
-        $secret = (string) config('services.pesapal.consumer_secret');
-        $provided = (string) $request->header('X-Pesapal-Signature', '');
-        if (! Signatures::hmac($payload, $provided, $secret)) {
-            return response('Invalid signature', 400);
+        $tracking = (string) $request->input('OrderTrackingId', $request->input('pesapal_transaction_tracking_id', ''));
+        $reference = (string) $request->input('OrderMerchantReference', $request->input('pesapal_merchant_reference', ''));
+        if ($tracking === '' || $reference === '') {
+            return response('Missing reference', 400);
         }
 
         if (config('legacy.safe_mode') || config('legacy.read_only')) {
             return response('Paused', 200);
         }
 
-        if ($reference !== '' && $tracking !== '') {
+        $status = $this->status($tracking);
+        if ($status === 'COMPLETED') {
             $this->checkout->settle($reference, $tracking);
+        } elseif (in_array($status, ['FAILED', 'INVALID', 'REVERSED'], true)) {
+            $this->checkout->fail($reference, 'Pesapal reported '.$status.'.');
         }
 
         return response('OK', 200);
+    }
+
+    private function status(string $tracking): string
+    {
+        $base = config('services.pesapal.env') === 'live'
+            ? 'https://pay.pesapal.com/v3/api'
+            : 'https://cybqa.pesapal.com/pesapalv3/api';
+        $token = Http::post($base.'/Auth/RequestToken', [
+            'consumer_key' => config('services.pesapal.consumer_key'),
+            'consumer_secret' => config('services.pesapal.consumer_secret'),
+        ])->json('token');
+        if (! $token) {
+            return '';
+        }
+
+        return strtoupper((string) Http::withToken($token)->get($base.'/Transactions/GetTransactionStatus', [
+            'orderTrackingId' => $tracking,
+        ])->json('payment_status_description'));
     }
 }

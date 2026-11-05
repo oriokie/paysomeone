@@ -4,6 +4,50 @@
     display: none !important;
 }
 
+/*
+ * The desk and office used a sticky 100vh sidebar inside a growing grid.
+ * Sticky failed to keep the bar in view on long pages, and a fixed height
+ * clipped any item past the fold. The shell is the viewport: the sidebar
+ * stays put and scrolls its own list; the main column scrolls alone.
+ */
+.app-shell {
+    display: flex;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.app-side {
+    display: none;
+}
+
+.app-main {
+    min-width: 0;
+    flex: 1;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+@media (min-width: 1024px) {
+    .app-side {
+        display: flex;
+        width: 15rem;
+        flex-shrink: 0;
+        flex-direction: column;
+        height: 100dvh;
+        background: var(--color-navy);
+        color: #fff;
+    }
+}
+
+.app-side-nav {
+    min-height: 0;
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 

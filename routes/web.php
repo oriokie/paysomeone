@@ -61,6 +61,8 @@ Route::middleware('auth:customer')->group(function () {
     Route::post('/account/orders/{order}/tip', [OrderWorkController::class, 'tip'])->name('desk.tip.store');
     Route::post('/account/orders/{order}/pay', [PaymentController::class, 'pay'])->name('desk.pay');
     Route::get('/account/wallet', [DeskController::class, 'wallet'])->name('desk.wallet');
+    Route::get('/account/payments', [DeskController::class, 'payments'])->name('desk.payments');
+    Route::get('/account/payments/{intent}', [DeskController::class, 'payment'])->name('desk.payments.show');
     Route::get('/account/referrals', [DeskController::class, 'referrals'])->name('desk.referrals');
     Route::get('/account/notifications', [DeskController::class, 'notifications'])->name('desk.notifications');
     Route::get('/account/profile', [DeskController::class, 'profile'])->name('desk.profile');
@@ -77,6 +79,10 @@ Route::post('/payments/mpesa/b2c', function (\Illuminate\Http\Request $request) 
 })->name('payments.mpesa.b2c');
 Route::post('/payments/stripe/webhook', [PaymentController::class, 'stripe'])->name('payments.stripe');
 Route::post('/payments/paypal/webhook', [PaymentController::class, 'paypal'])->name('payments.paypal');
+Route::post('/payments/paypal/ipn', [PaymentController::class, 'paypalIpn'])->name('payments.paypal.ipn');
+Route::get('/payments/paypal/return', [PaymentController::class, 'paypalReturn'])->name('payments.paypal.return');
+Route::get('/payments/paypal/cancel', [PaymentController::class, 'paypalCancel'])->name('payments.paypal.cancel');
+Route::get('/payments/stripe/cancel', [PaymentController::class, 'stripeCancel'])->name('payments.stripe.cancel');
 Route::post('/payments/pesapal/ipn', [PaymentController::class, 'pesapal'])->name('payments.pesapal');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');

@@ -23,7 +23,7 @@
     <ul class="ui-card mt-3 divide-y divide-slate-100">
         @forelse ($requests as $request)
             <li class="flex items-center justify-between px-5 py-3 text-[13px]">
-                <span>#{{ $request->payment_request_id }} · {{ $writers[$request->user_id]?->getFilamentName() ?? 'Writer' }} · ${{ number_format((float) $request->total_pay, 2) }} · {{ $request->status ? 'Paid' : 'Pending' }}</span>
+                <span>#{{ $request->payment_request_id }} · {{ $writers->get($request->user_id)?->getFilamentName() ?? 'Writer' }} · ${{ number_format((float) $request->total_pay, 2) }} · {{ $request->status ? 'Paid' : 'Pending' }}</span>
                 @if (\App\Services\Office\Access::allows($staff, 'payouts.approve') && ! $request->status)
                     <form method="POST" action="{{ route('office.payouts.approve', $request) }}">@csrf<button class="font-medium text-navy" type="submit">Approve</button></form>
                 @endif

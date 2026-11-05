@@ -3,6 +3,7 @@
     'desk.orders' => ['Orders', 'orders', null],
     'desk.messages' => ['Messages', 'message', $deskUnreadMessages ?? 0],
     'desk.wallet' => ['Wallet', 'wallet', null],
+    'desk.payments' => ['Payments', 'card', null],
     'desk.referrals' => ['Referrals', 'users', null],
     'desk.profile' => ['Settings', 'settings', null],
 ] as $route => [$label, $icon, $badge])

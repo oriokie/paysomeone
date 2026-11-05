@@ -46,6 +46,7 @@ return [
         'secret' => env('PAYPAL_CLIENT_SECRET'),
         'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
         'webhook_secret' => env('PAYPAL_WEBHOOK_SECRET'),
+        'webhook_certificate' => env('PAYPAL_WEBHOOK_CERTIFICATE'),
     ],
 
     'stripe' => [

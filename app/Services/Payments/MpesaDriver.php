@@ -16,7 +16,7 @@ class MpesaDriver
      */
     public function push(Customer $customer, Order $order, string $phone): array
     {
-        if ($reason = $this->checkout->providerBlocked()) {
+        if ($reason = $this->checkout->providerBlocked() ?? $this->checkout->gatewayClosed('mpesa')) {
             return ['ok' => false, 'message' => $reason, 'reference' => null];
         }
 
@@ -86,6 +86,11 @@ class MpesaDriver
         $callback = $request->input('Body.stkCallback', []);
         $code = (int) ($callback['ResultCode'] ?? 1);
         $checkoutId = (string) ($callback['CheckoutRequestID'] ?? '');
+        if ($checkoutId !== '' && $code !== 0) {
+            $this->checkout->fail($checkoutId, 'M-Pesa did not complete the payment ('.$code.').');
+
+            return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+        }
         if ($code !== 0 || $checkoutId === '') {
             return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         }

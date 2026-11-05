@@ -59,6 +59,34 @@ class PaymentController extends Controller
         return $driver->webhook($request);
     }
 
+    public function paypalIpn(Request $request, PaypalDriver $driver): \Illuminate\Http\Response
+    {
+        return $driver->ipn($request);
+    }
+
+    public function paypalReturn(Request $request, PaypalDriver $driver): RedirectResponse
+    {
+        return $driver->returned($request);
+    }
+
+    public function paypalCancel(Request $request, PaypalDriver $driver): RedirectResponse
+    {
+        return $driver->cancelled($request);
+    }
+
+    public function stripeCancel(Request $request, CheckoutService $checkout): RedirectResponse
+    {
+        $reference = (string) $request->query('reference', '');
+        $checkout->cancel($reference, 'The card checkout was cancelled.');
+        $intent = \App\Models\PaymentIntent::query()->where('reference', $reference)->first();
+        $order = $intent?->order_id ? Order::query()->find($intent->order_id) : null;
+
+        return redirect()->to($order ? route('desk.order', $order) : route('account'))
+            ->with('status', 'Card checkout was cancelled. Nothing was charged.')
+            ->with('pay_phase', 'failed')
+            ->with('tab', 'payment');
+    }
+
     public function pesapal(Request $request, PesapalDriver $driver): \Illuminate\Http\Response
     {
         return $driver->ipn($request);

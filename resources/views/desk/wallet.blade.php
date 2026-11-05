@@ -20,7 +20,7 @@
                     <tr class="border-t border-slate-100">
                         <td class="px-5 py-4 text-slate-600">{{ $transaction->date_add }}</td>
                         <td class="px-5 py-4">{{ $transaction->payment_method }} · {{ $transaction->source }}</td>
-                        <td class="px-5 py-4 tabular-nums">${{ number_format((float) $transaction->amount, 2) }}</td>
+                        <td class="px-5 py-4 tabular-nums {{ in_array($transaction->source, ['deposit', 'refund'], true) ? 'text-good' : '' }}">{{ in_array($transaction->source, ['deposit', 'refund'], true) ? '+' : '−' }}${{ number_format((float) $transaction->amount, 2) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="3" class="px-5 py-12 text-slate-500">No wallet transactions yet.</td></tr>
@@ -28,6 +28,7 @@
             </tbody>
         </table>
     </div>
+    <div class="mt-4">{{ $transactions->links() }}</div>
 
     <h2 class="mt-10 font-display text-2xl tracking-tight text-navy">Tip a writer</h2>
     @if ($tipOrder)

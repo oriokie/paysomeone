@@ -16,7 +16,7 @@ class StripeDriver
      */
     public function start(Customer $customer, Order $order): array
     {
-        if ($reason = $this->checkout->providerBlocked()) {
+        if ($reason = $this->checkout->providerBlocked() ?? $this->checkout->gatewayClosed('stripe')) {
             return ['ok' => false, 'message' => $reason, 'redirect' => null];
         }
 
@@ -26,8 +26,8 @@ class StripeDriver
             ->asForm()
             ->post('https://api.stripe.com/v1/checkout/sessions', [
                 'mode' => 'payment',
-                'success_url' => route('desk.order', $order).'?paid=1',
-                'cancel_url' => route('desk.order', $order).'?paid=0',
+                'success_url' => route('desk.order', $order).'?checkout=return',
+                'cancel_url' => route('payments.stripe.cancel', ['reference' => $intent->reference]),
                 'client_reference_id' => $intent->reference,
                 'customer_email' => $customer->email,
                 'line_items[0][quantity]' => 1,
@@ -57,11 +57,29 @@ class StripeDriver
         }
 
         $event = json_decode($payload, true);
-        if (($event['type'] ?? '') !== 'checkout.session.completed') {
+        $type = (string) ($event['type'] ?? '');
+        if (in_array($type, ['checkout.session.expired', 'checkout.session.async_payment_failed', 'payment_intent.payment_failed'], true)) {
+            $object = $event['data']['object'] ?? [];
+            $reference = (string) ($object['client_reference_id'] ?? $object['metadata']['reference'] ?? '');
+            if ($reference !== '') {
+                $this->checkout->fail($reference, 'Stripe reported '.$type.'.');
+            }
+
+            return response('OK', 200);
+        }
+        if ($type === 'charge.refunded') {
+            $this->checkout->markRefunded((string) ($event['data']['object']['payment_intent'] ?? ''));
+
+            return response('OK', 200);
+        }
+        if ($type !== 'checkout.session.completed') {
             return response('Ignored', 200);
         }
 
         $session = $event['data']['object'] ?? [];
+        if (($session['payment_status'] ?? 'paid') === 'unpaid') {
+            return response('Pending', 200);
+        }
         $reference = (string) ($session['client_reference_id'] ?? '');
         $transaction = (string) ($session['payment_intent'] ?? $session['id'] ?? '');
         $cents = $session['amount_total'] ?? null;

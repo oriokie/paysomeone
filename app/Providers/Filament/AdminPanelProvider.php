@@ -46,6 +46,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 fn () => view('office.login-note'),
             )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => '<style>.fi-layout{min-height:100dvh}.fi-sidebar{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column}.fi-sidebar-nav{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain}.fi-main-ctn{min-width:0;height:100dvh;overflow-y:auto}</style>',
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

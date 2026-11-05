@@ -9,7 +9,6 @@ use App\Models\OrderTip;
 use App\Models\Payment;
 use App\Models\PaymentIntent;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class CheckoutService
 {
@@ -125,7 +124,16 @@ class CheckoutService
             }
 
             if ($amount !== null && abs($amount - (float) $intent->amount) > 0.05) {
-                throw new RuntimeException('The paid amount does not match the quote.');
+                $intent->status = 'failed';
+                $intent->payload = array_merge($intent->payload ?? [], ['reason' => 'The paid amount does not match the quote.']);
+                $intent->save();
+                \Illuminate\Support\Facades\Log::warning('payment.amount_mismatch', [
+                    'reference' => $reference,
+                    'expected' => $intent->amount,
+                    'paid' => $amount,
+                ]);
+
+                return;
             }
 
             $intent->status = 'paid';
@@ -156,6 +164,48 @@ class CheckoutService
         });
 
         return $applied;
+    }
+
+    public function fail(string $reference, string $reason): void
+    {
+        $this->close($reference, 'failed', $reason);
+    }
+
+    public function cancel(string $reference, string $reason = 'The customer left the checkout.'): void
+    {
+        $this->close($reference, 'cancelled', $reason);
+    }
+
+    public function markRefunded(string $transactionId): void
+    {
+        $intent = PaymentIntent::query()->where('transaction_id', $transactionId)->where('status', 'paid')->first();
+        if (! $intent) {
+            return;
+        }
+        $intent->status = 'refunded';
+        $intent->payload = array_merge($intent->payload ?? [], ['reason' => 'The provider reported a refund. The card or wallet was not credited again here.']);
+        $intent->save();
+    }
+
+    public function gatewayClosed(string $provider): ?string
+    {
+        $row = \App\Models\GatewaySetting::query()->find($provider);
+        if ($row && ! $row->enabled) {
+            return 'This payment method is turned off.';
+        }
+
+        return null;
+    }
+
+    private function close(string $reference, string $status, string $reason): void
+    {
+        $intent = PaymentIntent::query()->where('reference', $reference)->first();
+        if (! $intent || in_array($intent->status, ['paid', 'refunded'], true)) {
+            return;
+        }
+        $intent->status = $status;
+        $intent->payload = array_merge($intent->payload ?? [], ['reason' => $reason]);
+        $intent->save();
     }
 
     private function recordExternalTip(Order $order, PaymentIntent $intent, string $transactionId): bool

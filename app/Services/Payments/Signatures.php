@@ -43,4 +43,38 @@ class Signatures
 
         return hash_equals(hash_hmac('sha256', $payload, $secret), $provided);
     }
+
+    /**
+     * PayPal webhook verification. The certificate must be PayPal's, or a PEM
+     * supplied only by our own config during a local test.
+     *
+     * @param  array<string, string>  $headers
+     */
+    public static function paypal(string $payload, array $headers, string $webhookId, ?string $certificate = null): bool
+    {
+        $id = $headers['paypal-transmission-id'] ?? '';
+        $time = $headers['paypal-transmission-time'] ?? '';
+        $signature = $headers['paypal-transmission-sig'] ?? '';
+        $url = $headers['paypal-cert-url'] ?? '';
+        if ($id === '' || $time === '' || $signature === '' || $webhookId === '') {
+            return false;
+        }
+
+        if ($certificate === null || $certificate === '') {
+            if (! preg_match('#^https://([a-z0-9-]+\.)*paypal\.com/#i', $url)) {
+                return false;
+            }
+            $certificate = \Illuminate\Support\Facades\Http::timeout(10)->get($url)->body();
+        }
+
+        $public = openssl_pkey_get_public($certificate);
+        if ($public === false) {
+            return false;
+        }
+
+        $message = $id.'|'.$time.'|'.$webhookId.'|'.sprintf('%u', crc32($payload));
+        $verified = openssl_verify($message, base64_decode($signature, true) ?: '', $public, OPENSSL_ALGO_SHA256);
+
+        return $verified === 1;
+    }
 }

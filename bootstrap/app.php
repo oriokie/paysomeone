@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'payments/mpesa/callback',
             'payments/mpesa/b2c',
             'payments/paypal/webhook',
+            'payments/paypal/ipn',
             'payments/stripe/webhook',
             'payments/pesapal/ipn',
         ]);

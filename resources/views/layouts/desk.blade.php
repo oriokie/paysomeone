@@ -11,12 +11,12 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|plus-jakarta-sans:500,600,700" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-app font-sans text-[15px] text-slate-900 antialiased">
+<body class="bg-app font-sans text-[15px] text-slate-900 antialiased">
     <a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2">Skip to content</a>
-    <div class="lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside class="sticky top-0 hidden h-screen flex-col bg-navy text-white lg:flex">
-            <a href="{{ route('account') }}" class="px-5 py-6 font-display text-lg tracking-tight">{{ $siteName }}</a>
-            <nav class="flex flex-1 flex-col gap-1 px-3" aria-label="Desk">
+    <div class="app-shell">
+        <aside class="app-side">
+            <a href="{{ route('account') }}" class="shrink-0 px-5 py-6 font-display text-lg tracking-tight">{{ $siteName }}</a>
+            <nav class="app-side-nav flex flex-col gap-1 px-3" aria-label="Desk">
                 @include('desk.links')
             </nav>
             <div class="border-t border-white/10 p-3" x-data="{ open: false }">
@@ -33,7 +33,7 @@
                 </form>
             </div>
         </aside>
-        <div class="min-w-0">
+        <div class="app-main">
             @if ($readOnly)
                 <div class="bg-navy px-4 py-2 text-center text-[13px] text-white/80">Preview. Changes to live orders, files, and payments are blocked.</div>
             @endif
@@ -70,20 +70,30 @@
             </main>
         </div>
     </div>
-    <nav class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-slate-200/80 bg-white/95 px-1 py-2 text-center text-[11px] backdrop-blur lg:hidden" aria-label="Desk">
-        @foreach ([
-            'account' => ['Overview', 'home'],
-            'desk.orders' => ['Orders', 'orders'],
-            'desk.messages' => ['Messages', 'message'],
-            'desk.wallet' => ['Wallet', 'wallet'],
-            'desk.profile' => ['Settings', 'settings'],
-        ] as $route => [$label, $icon])
-            <a href="{{ route($route) }}" class="flex flex-col items-center gap-1 rounded-xl py-1 {{ request()->routeIs($route) ? 'font-semibold text-navy' : 'text-slate-400' }}" @if (request()->routeIs($route)) aria-current="page" @endif>
-                <x-glyph :name="$icon" class="size-5" />
-                {{ $label }}
-            </a>
-        @endforeach
-    </nav>
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/95 backdrop-blur lg:hidden" x-data="{ more: false }">
+        <div class="max-h-[50dvh] overflow-y-auto bg-navy px-3 py-2 text-white" x-show="more" x-cloak>
+            <nav class="flex flex-col gap-1" aria-label="More desk">
+                @include('desk.links')
+            </nav>
+        </div>
+        <nav class="grid grid-cols-5 px-1 py-2 text-center text-[11px]" aria-label="Desk">
+            @foreach ([
+                'account' => ['Overview', 'home'],
+                'desk.orders' => ['Orders', 'orders'],
+                'desk.messages' => ['Messages', 'message'],
+                'desk.wallet' => ['Wallet', 'wallet'],
+            ] as $route => [$label, $icon])
+                <a href="{{ route($route) }}" class="flex flex-col items-center gap-1 rounded-xl py-1 {{ request()->routeIs($route) ? 'font-semibold text-navy' : 'text-slate-400' }}" @if (request()->routeIs($route)) aria-current="page" @endif>
+                    <x-glyph :name="$icon" class="size-5" />
+                    {{ $label }}
+                </a>
+            @endforeach
+            <button type="button" class="flex flex-col items-center gap-1 rounded-xl py-1 text-slate-400" @click="more = !more" :aria-expanded="more">
+                <x-glyph name="settings" class="size-5" />
+                More
+            </button>
+        </nav>
+    </div>
     <a href="{{ route('order.create') }}" class="ui-btn ui-btn-primary fixed right-4 bottom-20 z-40 size-12 rounded-full p-0 shadow-lg lg:hidden" aria-label="New order">
         <x-glyph name="plus" class="size-5" />
     </a>

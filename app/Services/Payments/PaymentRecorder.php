@@ -55,7 +55,7 @@ class PaymentRecorder
             $wasUnpaid = ! $fresh->is_paid;
             $fresh->payment_method = $method;
             $fresh->total_paid = (float) $fresh->total_paid + $amount;
-                if ($wasUnpaid && $amount + 0.001 >= (float) $fresh->total) {
+            if ($wasUnpaid && (float) $fresh->total_paid + 0.001 >= (float) $fresh->total) {
                 $fresh->is_paid = 1;
                 $fresh->paid_at = now();
                 if (in_array((int) $fresh->status_id, [Order::WAITING_FOR_PAYMENT, Order::FREE_INQUIRY, Order::CONFIRMATION_PENDING], true)) {
@@ -116,7 +116,7 @@ class PaymentRecorder
             $tx->customer_id = $fresh->customer_id;
             $tx->currency_id = $currencyId;
             $tx->transaction_id = $transactionId;
-            $tx->source = 'wallet';
+            $tx->source = 'deposit';
             $tx->payment_method = $method;
             $tx->amount = $amount;
             $tx->date_add = now();

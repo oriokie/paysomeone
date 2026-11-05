@@ -24,6 +24,7 @@ class E2eSeeder extends Seeder
             throw new RuntimeException('Refusing to seed the live database.');
         }
         config(['legacy.read_only' => false]);
+        \App\Models\RolePermission::query()->delete();
         $hasher = new LegacyHasher(4);
         Site::query()->updateOrCreate(['site_id' => 1], ['name' => 'PaySomeoneToWrite', 'email' => 'studio@paysomeonetowrite.com', 'domain' => 'local.test', 'date_add' => now(), 'date_upd' => now()]);
 

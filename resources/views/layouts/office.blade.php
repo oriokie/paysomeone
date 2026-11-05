@@ -10,7 +10,7 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|plus-jakarta-sans:500,600,700" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-app font-sans text-[15px] text-slate-900 antialiased">
+<body class="bg-app font-sans text-[15px] text-slate-900 antialiased">
     @php
         $staff = auth('staff')->user();
         $role = $staff ? \App\Services\Office\Permissions::roleName((int) $staff->employee_group) : '';
@@ -32,10 +32,10 @@
             ['office.activity', 'Activity', 'clock', $can('audit.view')],
         ], fn ($item) => $item[3]));
     @endphp
-    <div class="lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside class="sticky top-0 hidden h-screen flex-col bg-navy text-white lg:flex">
-            <a href="{{ route('office.home') }}" class="px-5 py-6 font-display text-lg tracking-tight">Office</a>
-            <nav class="flex flex-1 flex-col gap-1 overflow-auto px-3" aria-label="Office">
+    <div class="app-shell">
+        <aside class="app-side">
+            <a href="{{ route('office.home') }}" class="shrink-0 px-5 py-6 font-display text-lg tracking-tight">Office</a>
+            <nav class="app-side-nav flex flex-col gap-1 px-3" aria-label="Office">
                 @foreach ($nav as [$route, $label, $icon])
                     <a href="{{ route($route) }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] {{ request()->routeIs($route) ? 'bg-white/10 font-medium' : 'text-white/70 hover:bg-white/5 hover:text-white' }}">
                         <x-glyph :name="$icon" class="size-5" /> {{ $label }}
@@ -51,7 +51,7 @@
                 </form>
             </div>
         </aside>
-        <div class="min-w-0">
+        <div class="app-main">
             @if (session('office.view_as'))
                 <div class="flex items-center justify-between bg-amber-100 px-4 py-2 text-[13px] text-amber-950">
                     <span>Viewing as another staff member. This session cannot change anything.</span>
@@ -70,9 +70,9 @@
             </main>
         </div>
     </div>
-    <nav class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-slate-200/80 bg-white px-1 py-2 text-center text-[11px] lg:hidden" aria-label="Office">
-        @foreach (array_slice($nav, 0, 4) as [$route, $label, $icon])
-            <a href="{{ route($route) }}" class="flex flex-col items-center gap-1 {{ request()->routeIs($route) ? 'font-semibold text-navy' : 'text-slate-400' }}">
+    <nav class="fixed inset-x-0 bottom-0 z-40 flex gap-1 overflow-x-auto border-t border-slate-200/80 bg-white px-2 py-2 text-[11px] lg:hidden" aria-label="Office">
+        @foreach ($nav as [$route, $label, $icon])
+            <a href="{{ route($route) }}" class="flex min-w-16 shrink-0 flex-col items-center gap-1 rounded-xl px-2 py-1 {{ request()->routeIs($route) ? 'font-semibold text-navy' : 'text-slate-400' }}">
                 <x-glyph :name="$icon" class="size-5" /> {{ $label }}
             </a>
         @endforeach

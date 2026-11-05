@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\PaymentIntent;
 use App\Models\OrderMessage;
 use App\Models\Referral;
 use App\Models\WalletTransaction;
@@ -106,13 +107,56 @@ class DeskController extends Controller
         ]);
     }
 
+    public function payments(Request $request): View
+    {
+        $customer = $this->customer($request);
+        $perPage = in_array((int) $request->query('per_page'), [10, 25, 50], true) ? (int) $request->query('per_page') : 10;
+        $query = PaymentIntent::query()->where('customer_id', $customer->customer_id);
+        if ($request->filled('provider')) {
+            $query->where('provider', (string) $request->query('provider'));
+        }
+        if ($request->filled('status')) {
+            $query->where('status', (string) $request->query('status'));
+        }
+        if ($request->filled('q')) {
+            $term = (string) $request->query('q');
+            $query->where(function ($inner) use ($term) {
+                $inner->where('reference', 'like', '%'.$term.'%')
+                    ->orWhere('transaction_id', 'like', '%'.$term.'%')
+                    ->orWhere('order_id', $term);
+            });
+        }
+
+        return view('desk.payments', [
+            'customer' => $customer,
+            'payments' => $query->orderByDesc('id')->paginate($perPage)->withQueryString(),
+            'filters' => [
+                'q' => (string) $request->query('q', ''),
+                'provider' => (string) $request->query('provider', ''),
+                'status' => (string) $request->query('status', ''),
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
+    public function payment(Request $request, PaymentIntent $intent): View
+    {
+        $customer = $this->customer($request);
+        abort_unless((int) $intent->customer_id === (int) $customer->customer_id, 403);
+
+        return view('desk.payment', [
+            'customer' => $customer,
+            'payment' => $intent->load('order'),
+        ]);
+    }
+
     public function wallet(Request $request): View
     {
         $customer = $this->customer($request);
 
         return view('desk.wallet', [
             'customer' => $customer,
-            'transactions' => WalletTransaction::query()->where('customer_id', $customer->customer_id)->orderByDesc('date_add')->limit(30)->get(),
+            'transactions' => WalletTransaction::query()->where('customer_id', $customer->customer_id)->orderByDesc('wallet_transaction_id')->paginate(10)->withQueryString(),
             'tipOrder' => Order::query()
                 ->where('customer_id', $customer->customer_id)
                 ->whereIn('status_id', [Order::DELIVERED, Order::FINISHED])
