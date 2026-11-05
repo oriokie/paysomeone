@@ -43,6 +43,10 @@ class CustomerRegistrar
         $customer->policy_accepted = 1;
         $customer->policy_accepted_at = now();
         $customer->last_passwd_gen = now();
+        $referrer = (int) ($input['referrer_id'] ?? 0);
+        if ($referrer > 0 && Customer::query()->where('customer_id', $referrer)->exists()) {
+            $customer->referrer_id = $referrer;
+        }
         $customer->is_subscribed = (bool) ($input['subscribed'] ?? false);
         $customer->reg_date = now();
         $customer->save();

@@ -7,6 +7,9 @@
         <div>
             <h1 class="font-display text-4xl text-navy">Start a brief</h1>
             <p class="mt-4 max-w-xl leading-7 text-ink/70">The total updates from the rate card. This preview does not take payment.</p>
+            @if ($readOnly)
+                <p class="mt-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status">Placing an order is blocked while this site is read-only. You can still see the price. Nothing is written to the live order book.</p>
+            @endif
 
             <form method="POST" action="{{ route('order.store') }}" class="mt-8 space-y-6" @change="schedule()">
                 @csrf
@@ -120,7 +123,10 @@
                         {{ $errors->first() }}
                     </div>
                 @endif
-                <button class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit">Save this brief</button>
+                <div class="flex flex-wrap gap-3">
+                    <button class="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white" type="submit" name="intent" value="pay">Place order</button>
+                    <button class="rounded-full border border-line bg-white px-5 py-3 text-sm font-semibold text-navy" type="submit" name="intent" value="inquiry">Save as an enquiry</button>
+                </div>
             </form>
         </div>
 

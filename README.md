@@ -100,8 +100,24 @@ php artisan test
 
 See [docs/cpanel.md](docs/cpanel.md). Keep `READ_ONLY_LEGACY` and `SAFE_MODE` true for the whole preview. Turn writes on only when you are ready for this site to create enquiries in the live order book, and only after the current site is paused so the two sites are not creating orders together.
 
+## Customer desk
+
+Signed-in clients use `/account`.
+
+- Orders, with the same statuses as the current site, and filters for payment, enquiry, progress, delivery, revision, finished, cancelled, and dispute.
+- An order page with the brief, files, messages to support or the assigned writer, a revision request, a rating, and a tip.
+- Files are stored outside the website folder. The path saved in `prox_order_file.source` is relative to `LEGACY_UPLOADS_PATH`. Point that setting at the current site’s uploads folder and both sites open the same files. A client can only open files on their own orders.
+- Wallet balance and transactions, referrals, alerts, and profile or password.
+- While `READ_ONLY_LEGACY` is true, the order form still shows a price and then refuses to file the order. Nothing is written to `prox_order`.
+- When writes are allowed, “Place order” files a real order waiting for payment. “Save as an enquiry” files it as an enquiry. Order numbers still jump by 2, matching the current site.
+
+Payments sit behind safe mode. M-Pesa (STK push and callback), PayPal, Stripe, and Pesapal each have sandbox settings in `.env.example`. A successful callback writes `prox_payment`. Paying from the wallet also writes `prox_wallet_transaction`. The same callback twice does not record the payment twice. Stripe, PayPal, and Pesapal callbacks are checked with a signature. The M-Pesa callback is checked with the secret in its address, which is the check Daraja gives you.
+
+Emails use the text already stored in `prox_mail_template`. They are queued. While safe mode is on they are written to the log and not sent. On shared hosting, one cron line runs the queue. See `docs/cpanel.md`.
+
+Phase 3, the staff and writer office, can listen for `App\Events\DeskEvent` (`order.placed`, `order.paid`, `order.file`, `order.message`, `order.revision`, `order.tip`). This desk does not sign staff in and does not impersonate anyone.
+
 ## What comes next
 
-1. **Customer desk.** Orders, files, messages, revisions, and the wallet, still read from the existing tables. Payments: M-Pesa, PayPal, Stripe, and Pesapal, behind the safe-mode switch until each one is tested.
-2. **Staff office for the daily work.** Assignments, bids, fines, and writer payouts including M-Pesa. Administrators and sub-administrators only, with the same password check. No impersonation link.
-3. **Cut-over.** Pause the current site, set `READ_ONLY_LEGACY=false` here, point the main domain at this site, and leave the old files in place until you are sure. The old password hashes that were not yet rewritten keep working until each person signs in.
+1. **Staff office for the daily work.** Bids, assignments, fines, and writer payouts, including M-Pesa. Administrators and sub-administrators only, with the same password check. No impersonation link. Listen for `DeskEvent`.
+2. **Cut-over.** Pause the current site, set `READ_ONLY_LEGACY=false` here, file one test order, pay it in the sandbox, confirm it in the current office, then point the main domain at this site. Leave the old files in place until you are sure.

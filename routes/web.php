@@ -1,13 +1,15 @@
 <?php
 
-use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\DeskController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderWorkController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,8 +43,28 @@ Route::middleware('guest:customer')->group(function () {
 });
 
 Route::middleware('auth:customer')->group(function () {
-    Route::get('/account', [AccountController::class, 'show'])->name('account');
+    Route::get('/account', [DeskController::class, 'home'])->name('account');
+    Route::get('/account/orders', [DeskController::class, 'orders'])->name('desk.orders');
+    Route::get('/account/orders/{order}', [DeskController::class, 'show'])->name('desk.order');
+    Route::post('/account/orders/{order}/files', [OrderWorkController::class, 'upload'])->name('desk.files.store');
+    Route::get('/account/orders/{order}/files/{file}', [OrderWorkController::class, 'download'])->name('desk.files.download');
+    Route::post('/account/orders/{order}/messages', [OrderWorkController::class, 'message'])->name('desk.messages.store');
+    Route::post('/account/orders/{order}/revisions', [OrderWorkController::class, 'revision'])->name('desk.revisions.store');
+    Route::post('/account/orders/{order}/rating', [OrderWorkController::class, 'rate'])->name('desk.rating.store');
+    Route::post('/account/orders/{order}/tip', [OrderWorkController::class, 'tip'])->name('desk.tip.store');
+    Route::post('/account/orders/{order}/pay', [PaymentController::class, 'pay'])->name('desk.pay');
+    Route::get('/account/wallet', [DeskController::class, 'wallet'])->name('desk.wallet');
+    Route::get('/account/referrals', [DeskController::class, 'referrals'])->name('desk.referrals');
+    Route::get('/account/notifications', [DeskController::class, 'notifications'])->name('desk.notifications');
+    Route::get('/account/profile', [DeskController::class, 'profile'])->name('desk.profile');
+    Route::post('/account/profile', [DeskController::class, 'updateProfile'])->name('desk.profile.update');
+    Route::post('/account/password', [DeskController::class, 'updatePassword'])->name('desk.password.update');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 });
+
+Route::post('/payments/mpesa/callback', [PaymentController::class, 'mpesa'])->name('payments.mpesa');
+Route::post('/payments/stripe/webhook', [PaymentController::class, 'stripe'])->name('payments.stripe');
+Route::post('/payments/paypal/webhook', [PaymentController::class, 'paypal'])->name('payments.paypal');
+Route::post('/payments/pesapal/ipn', [PaymentController::class, 'pesapal'])->name('payments.pesapal');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');

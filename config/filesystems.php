@@ -30,6 +30,13 @@ return [
 
     'disks' => [
 
+        'order_files' => [
+            'driver' => 'local',
+            'root' => env('LEGACY_UPLOADS_PATH', storage_path('app/legacy-uploads')),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

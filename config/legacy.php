@@ -40,4 +40,11 @@ return [
 
     'live_database' => env('LEGACY_LIVE_DATABASE', 'tutoress_paysomeone'),
 
+    /*
+     * Order files live here, outside the web root. Point this at the same
+     * uploads folder the current site uses so both sites open the same files.
+     * The value stored in prox_order_file.source is the path relative to this folder.
+     */
+    'uploads_path' => env('LEGACY_UPLOADS_PATH', storage_path('app/legacy-uploads')),
+
 ];

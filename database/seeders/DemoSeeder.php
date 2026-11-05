@@ -9,10 +9,15 @@ use App\Models\Customer;
 use App\Models\Deadline;
 use App\Models\Discipline;
 use App\Models\Employee;
+use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderFile;
+use App\Models\OrderMessage;
 use App\Models\OrderRating;
 use App\Models\PaperType;
 use App\Models\Post;
+use App\Models\WalletTransaction;
+use App\Support\Departments;
 use App\Models\Site;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -180,6 +185,7 @@ class DemoSeeder extends Seeder
                 'price_per_word' => 0.05,
                 'order_type' => 'article',
                 'is_paid' => 1,
+                'total_paid' => 40,
                 'date_add' => now()->subDays(12),
                 'date_upd' => now()->subDays(10),
             ],
@@ -195,6 +201,107 @@ class DemoSeeder extends Seeder
                 'comment' => 'The launch note sounded like us, and the second draft answered the questions our sales lead actually gets on calls.',
                 'date_add' => now()->subDays(9),
                 'date_upd' => now()->subDays(9),
+            ],
+        );
+
+        OrderMessage::query()->updateOrCreate(
+            ['order_id' => $order->order_id, 'from_department' => Departments::SUPPORT],
+            [
+                'sender_id' => 0,
+                'parent_id' => 0,
+                'to_department' => Departments::CUSTOMER,
+                'subject' => 'Order #'.$order->order_id,
+                'body' => 'The launch note is ready. Tell us if the opening should be shorter before you approve it.',
+                'date_add' => now()->subDays(8),
+                'date_upd' => now()->subDays(8),
+            ],
+        );
+
+        Order::query()->firstOrCreate(
+            ['tracking_id' => 'DEMOUNPAID'],
+            [
+                'site_id' => 1,
+                'form_type_id' => Order::SERVICE_ARTICLE,
+                'form_type' => 'articles',
+                'gmt' => 0,
+                'customer_id' => $customer->customer_id,
+                'status_id' => Order::WAITING_FOR_PAYMENT,
+                'parent_id' => 0,
+                'service_type' => Order::SERVICE_ARTICLE,
+                'tariff_id' => (int) (Deadline::query()->where('is_article_writing', 1)->value('deadline_id') ?: 0),
+                'title' => 'Quarterly client update',
+                'academic_level_id' => 0,
+                'paper_type_id' => 0,
+                'topic_category_id' => 0,
+                'paper_format_id' => 0,
+                'pages' => 0,
+                'words' => 800,
+                'spacing' => 'double',
+                'paper_details' => 'An update for existing clients. Lead with the result, then the next step.',
+                'total' => 96,
+                'raw_cost' => 96,
+                'price_per_word' => 0.12,
+                'order_type' => 'article',
+                'is_paid' => 0,
+                'date_add' => now()->subDay(),
+                'date_upd' => now()->subDay(),
+            ],
+        );
+
+        WalletTransaction::query()->firstOrCreate(
+            ['transaction_id' => 'DEMOWALLET1'],
+            [
+                'customer_id' => $customer->customer_id,
+                'source' => 'wallet',
+                'payment_method' => 'mpesa',
+                'amount' => 40,
+                'date_add' => now()->subDays(20),
+            ],
+        );
+
+        Notification::query()->firstOrCreate(
+            ['node_url' => (string) $order->order_id, 'to_user_id' => $customer->customer_id, 'node_type' => 'new_payment'],
+            [
+                'to_department' => (string) Departments::CUSTOMER,
+                'from_department' => (string) Departments::SUPPORT,
+                'from_user_id' => 0,
+                'action' => 'order',
+                'message' => 'Payment received for order #'.$order->order_id,
+                'is_seen' => 0,
+                'date_add' => now()->subDays(11),
+                'date_upd' => now()->subDays(11),
+            ],
+        );
+
+        $upload = storage_path('app/legacy-uploads/'.$order->order_id);
+        if (! is_dir($upload)) {
+            mkdir($upload, 0750, true);
+        }
+        file_put_contents($upload.'/brief.txt', 'Demo brief stored outside the web root.');
+        OrderFile::query()->updateOrCreate(
+            ['order_id' => $order->order_id, 'source' => $order->order_id.'/brief.txt'],
+            [
+                'site_id' => 1,
+                'uploader_id' => $customer->customer_id,
+                'file_type_id' => 1,
+                'file_description' => 'Original brief',
+                'name' => 'brief.txt',
+                'size' => 42,
+                'extension' => 'txt',
+                'date_add' => now()->subDays(11),
+                'date_upd' => now()->subDays(11),
+            ],
+        );
+
+        \App\Models\MailTemplate::query()->updateOrCreate(
+            ['template' => 'order_payment'],
+            [
+                'subject' => 'Payment received for order #{order_id}',
+                'from_name' => 'PaySomeoneToWrite',
+                'message' => "Hello {username},\n\nWe received {paid_amount} by {payment_method} for “{title}”.\n",
+                'is_disabled' => 0,
+                'date_add' => now(),
+                'date_upd' => now(),
             ],
         );
 

@@ -58,6 +58,7 @@ class OrderController extends Controller
             'plagiarism' => ['nullable', 'boolean'],
             'outline' => ['nullable', 'boolean'],
             'coupon_code' => ['nullable', 'string', 'max:40'],
+            'intent' => ['nullable', 'in:pay,inquiry'],
             'terms' => ['accepted'],
         ]);
 
@@ -71,15 +72,17 @@ class OrderController extends Controller
         $deadline = Deadline::query()->findOrFail($data['deadline_id']);
         $saved = $recorder->record($data, $quote, $customer, $deadline);
 
-        $message = 'Your brief is saved. The quoted total is $'.number_format($saved->quote_total, 2).'.';
         if (config('legacy.read_only')) {
-            $message .= ' This preview does not write to the live order book, so the current website is unchanged.';
-        } elseif ($saved->legacy_order_id) {
-            $message .= ' Inquiry #'.$saved->legacy_order_id.' is in the order book. Payment is not taken on this preview.';
-        } else {
-            $message .= ' Sign in before sending if you want the inquiry filed on your existing account.';
+            return redirect()->route('order.create')->withErrors([
+                'legacy' => 'Placing an order is blocked on this preview. The quote above is only a preview, and the live order book was not changed.',
+            ]);
         }
 
-        return redirect()->route('order.create')->with('status', $message);
+        if ($saved->legacy_order_id) {
+            return redirect()->route('desk.order', $saved->legacy_order_id)
+                ->with('status', 'Order #'.$saved->legacy_order_id.' is in the order book. The total is $'.number_format($saved->quote_total, 2).'.');
+        }
+
+        return redirect()->route('login')->with('status', 'Sign in before sending so the order can be filed on your account.');
     }
 }

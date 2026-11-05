@@ -26,7 +26,9 @@ class RegisterController extends Controller
             'password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
             'terms' => ['accepted'],
             'subscribed' => ['nullable', 'boolean'],
+            'referrer_id' => ['nullable', 'integer'],
         ]);
+        $data['referrer_id'] = (int) $request->input('ref', $request->input('referrer_id', 0));
 
         try {
             $customer = $registrar->register($data);

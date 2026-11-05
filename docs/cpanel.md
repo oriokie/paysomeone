@@ -75,6 +75,26 @@ Calculate a price on `/order`. Save a brief. It should land in `app_project_requ
 
 Open `/office` and sign in as an administrator (staff group 1 or 4). A writer account should not get in. An account that has the extra sign-in check switched on (the two-factor column) should not get in either, until that check is built.
 
+## Uploads
+
+Order files must not sit inside the folder the web can see. In `.env`:
+
+```text
+LEGACY_UPLOADS_PATH=/home/USERNAME/private/order-uploads
+```
+
+Use the same folder the current site already uses, if you know that path. The database stores only the relative path (`prox_order_file.source`). Both sites then open the same file. Create the folder and make sure the web user can write to it. Do not put it under `public_html`.
+
+## Queue and cron
+
+Emails are queued. On shared hosting there is no always-on worker. The project schedules `queue:work --stop-when-empty` every minute, which finishes and exits. Add one cron job in cPanel, using the PHP 8.4 binary if `php` is older:
+
+```text
+* * * * * /usr/local/bin/php /home/USERNAME/new.paysomeonetowrite.com/artisan schedule:run >> /dev/null 2>&1
+```
+
+Leave `QUEUE_CONNECTION=sync` if you would rather send (or log) the email during the page request and skip the cron. `sync` is the safer default on a small host. Use `database` only when the cron line above is in place. While `SAFE_MODE=true`, the queue still runs, but the email is written to the Laravel log and not delivered.
+
 ## 6. When you are ready for this site to file orders
 
 Do this in one sitting. Do not leave both sites creating orders.
@@ -82,9 +102,9 @@ Do this in one sitting. Do not leave both sites creating orders.
 1. Put the current site in maintenance, or stop its checkout, so it cannot create customers or orders for a few minutes.
 2. Set `READ_ONLY_LEGACY=false` in this site’s `.env`.
 3. Run `php artisan config:cache` again.
-4. Place one test enquiry while signed in. Confirm it appears in the current office as an inquiry, with the price you were quoted.
-5. Leave `SAFE_MODE=true` until email and each payment method have been tested on purpose. Turning it off allows real email. Payment calls are still not connected in this release, so a charge will not go out, but the switch should stay on until that work is finished.
-6. Point the main domain at this site’s `public` folder only after that test enquiry looks right.
+4. Place one test order while signed in. Confirm it appears in the current office, with the price you were quoted.
+5. Leave `SAFE_MODE=true` until you have put sandbox keys in `.env` and tried one payment on purpose. Turning it off allows real email and real calls to M-Pesa, PayPal, Stripe, and Pesapal.
+6. Point the main domain at this site’s `public` folder only after that test order looks right.
 
 If something is wrong, set `READ_ONLY_LEGACY=true`, cache the config again, and turn the current site back on. Nothing in this release removes an old order.
 

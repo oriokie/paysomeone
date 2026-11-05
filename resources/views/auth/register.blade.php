@@ -7,6 +7,9 @@
         <p class="mt-3 text-sm leading-6 text-ink/70">If you already order from the studio, sign in instead. A new account is only saved when this site is allowed to write to the customer list.</p>
         <form method="POST" action="{{ route('register') }}" class="mt-8 space-y-4 rounded-3xl bg-white p-7">
             @csrf
+            @if (request('ref'))
+                <input type="hidden" name="ref" value="{{ request('ref') }}">
+            @endif
             <div>
                 <label class="text-sm font-medium" for="name">Name</label>
                 <input id="name" name="name" value="{{ old('name') }}" required autocomplete="name" class="mt-1 w-full rounded-xl border border-line px-3 py-2">
