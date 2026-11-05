@@ -26,7 +26,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('office')
-            ->path('office')
+            ->path('studio')
             ->login()
             ->authGuard('staff')
             ->brandName('Studio office')
@@ -59,6 +59,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\RequireStaffTwoFactor::class,
             ]);
     }
 }

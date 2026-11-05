@@ -220,8 +220,44 @@ class DemoSeeder extends Seeder
                 'employee_group' => Employee::GROUP_WRITER,
                 'first_name' => 'Nora',
                 'last_name' => 'Adeyemi',
-                'password' => $password,
+                'password' => $hasher->make('Writer-Preview-2026'),
                 'secure_key' => md5('demo-writer'),
+                'is_started' => 1,
+                'is_banned' => 0,
+                'two_factor_enabled' => 1,
+                'two_factor_type' => 'google',
+                'two_factor_gsecret' => 'JBSWY3DPEHPK3PXP',
+                'writer_category' => 2,
+                'reg_date' => now(),
+            ],
+        );
+
+        Employee::query()->updateOrCreate(
+            ['email' => 'editor@paysomeonetowrite.test'],
+            [
+                'employee_group' => Employee::GROUP_EDITOR,
+                'first_name' => 'James',
+                'last_name' => 'Mwangi',
+                'password' => $hasher->make('Editor-Preview-2026'),
+                'secure_key' => md5('demo-editor'),
+                'is_started' => 1,
+                'is_banned' => 0,
+                'two_factor_enabled' => 1,
+                'two_factor_type' => 'google',
+                'two_factor_gsecret' => 'JBSWY3DPEHPK3PXP',
+                'writer_category' => 0,
+                'reg_date' => now(),
+            ],
+        );
+
+        Employee::query()->updateOrCreate(
+            ['email' => 'enrol@paysomeonetowrite.test'],
+            [
+                'employee_group' => Employee::GROUP_ADMIN,
+                'first_name' => 'Enrol',
+                'last_name' => 'Preview',
+                'password' => $hasher->make('Enrol-Preview-2026'),
+                'secure_key' => md5('demo-enrol'),
                 'is_started' => 1,
                 'is_banned' => 0,
                 'two_factor_enabled' => 0,
@@ -239,7 +275,9 @@ class DemoSeeder extends Seeder
                 'secure_key' => md5('demo-office'),
                 'is_started' => 1,
                 'is_banned' => 0,
-                'two_factor_enabled' => 0,
+                'two_factor_enabled' => 1,
+                'two_factor_type' => 'google',
+                'two_factor_gsecret' => 'JBSWY3DPEHPK3PXP',
                 'reg_date' => now(),
             ],
         );

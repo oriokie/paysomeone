@@ -13,7 +13,24 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo('/login');
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('office') || $request->is('office/*')) {
+                return route('office.login');
+            }
+
+            return route('login');
+        });
+        $middleware->redirectUsersTo(function (Request $request) {
+            if ($request->is('office') || $request->is('office/*')) {
+                return '/office';
+            }
+
+            return '/account';
+        });
+        $middleware->alias([
+            'staff.2fa' => \App\Http\Middleware\RequireStaffTwoFactor::class,
+            'staff.touch' => \App\Http\Middleware\TouchStaffSession::class,
+        ]);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: [
             'payments/mpesa/callback',

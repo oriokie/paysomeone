@@ -119,7 +119,7 @@ Payments sit behind safe mode. M-Pesa (STK push and callback), PayPal, Stripe, a
 
 Emails use the text already stored in `prox_mail_template`. They are queued. While safe mode is on they are written to the log and not sent. On shared hosting, one cron line runs the queue. See `docs/cpanel.md`.
 
-Phase 3, the staff and writer office, can listen for `App\Events\DeskEvent` (`order.placed`, `order.paid`, `order.file`, `order.message`, `order.revision`, `order.tip`). This desk does not sign staff in and does not impersonate anyone.
+The staff and writer office is at `/office`. Roles come from `prox_employee.employee_group`. Two-factor sign-in is required. See [docs/office.md](docs/office.md). The journal editor remains at `/studio` for admins, after the same two-factor session. There is no impersonation.
 
 ## What comes next
 
