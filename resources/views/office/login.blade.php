@@ -4,7 +4,7 @@
     <section class="mx-auto max-w-[420px] px-5 py-16">
         <p class="text-[13px] font-medium text-slate-500">Office</p>
         <h1 class="mt-2 font-display text-[32px] tracking-tight text-navy">Staff sign-in</h1>
-        <p class="mt-3 text-[15px] text-slate-500">Use the email and password already on your staff record. Two-factor is required before the office opens.</p>
+        <p class="mt-3 text-[15px] text-slate-500">Use the email and password already on your staff record. @if (config('office.two_factor_required', true))Two-factor is required before the office opens.@else You can add an authenticator from the security page after you sign in.@endif</p>
         <form class="ui-card mt-8 space-y-4 p-6" method="POST" action="{{ route('office.login') }}">
             @csrf
             <div>

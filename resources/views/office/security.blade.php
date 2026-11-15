@@ -5,11 +5,18 @@
         <p class="text-[13px] font-medium text-slate-500">Office</p>
         @if ($mode === 'setup')
             <h1 class="mt-2 font-display text-[32px] tracking-tight text-navy">Set up an authenticator</h1>
-            <p class="mt-3 text-[15px] text-slate-500">Add this key to Google Authenticator, 1Password, or Authy. The office stays closed until a code matches.</p>
+            @if (config('office.two_factor_required', true))
+                <p class="mt-3 text-[15px] text-slate-500">Scan the code with Google Authenticator, 1Password, or Authy, or type the key. The office stays closed until a code matches.</p>
+            @else
+                <p class="mt-3 text-[15px] text-slate-500">Scan the code with Google Authenticator, 1Password, or Authy, or type the key. You can leave this page and keep using the office.</p>
+            @endif
             <div class="ui-card mt-6 p-6">
-                <p class="text-[13px] text-slate-500">Secret</p>
-                <p class="mt-1 font-mono text-lg tracking-widest">{{ $secret }}</p>
-                <p class="mt-4 break-all text-[13px] text-slate-500">{{ $uri }}</p>
+                <img src="{{ $qr }}" alt="QR code for the authenticator app" width="196" height="196" class="mx-auto rounded-lg bg-white p-2">
+                <p class="mt-4 text-[13px] text-slate-500">Key</p>
+                <p class="mt-1 font-mono text-lg tracking-widest">{{ $grouped }}</p>
+                <p class="mt-2 text-[13px] text-slate-500">Spaces are only so the key is easier to type. The saved key has none.</p>
+                <p class="mt-4 text-[13px] text-slate-500">Setup link</p>
+                <p class="mt-1 break-all text-[13px] text-slate-500">{{ $uri }}</p>
             </div>
             @if ($codes)
                 <div class="ui-card mt-4 p-6">

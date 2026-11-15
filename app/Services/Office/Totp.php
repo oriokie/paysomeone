@@ -50,9 +50,56 @@ class Totp
         return false;
     }
 
+    /**
+     * Display form of a secret. Groups of four are easier to type.
+     * The stored secret is not changed.
+     */
+    public static function grouped(string $secret): string
+    {
+        $secret = preg_replace('/\s+/', '', $secret) ?? '';
+
+        return implode(' ', str_split($secret, 4));
+    }
+
     public static function uri(string $secret, string $email, string $issuer): string
     {
-        return 'otpauth://totp/'.rawurlencode($issuer.':'.$email).'?secret='.$secret.'&issuer='.rawurlencode($issuer).'&digits=6&period=30';
+        $secret = self::canonical($secret);
+        $issuer = self::issuer($issuer);
+        $account = trim($email);
+        $label = rawurlencode($issuer).':'.rawurlencode($account);
+        $query = http_build_query([
+            'secret' => $secret,
+            'issuer' => $issuer,
+            'algorithm' => 'SHA1',
+            'digits' => 6,
+            'period' => 30,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return 'otpauth://totp/'.$label.'?'.$query;
+    }
+
+    /**
+     * Uppercase base32, no padding, no spaces. A valid secret is unchanged.
+     */
+    private static function canonical(string $secret): string
+    {
+        $secret = strtoupper($secret);
+        $secret = str_replace([' ', "\t", "\r", "\n", '-', '='], '', $secret);
+
+        return preg_replace('/[^A-Z2-7]/', '', $secret) ?? '';
+    }
+
+    /**
+     * Authenticator apps reject a colon in the issuer (it is the label
+     * separator) and path or query characters that can corrupt the secret
+     * once the URI is decoded. Letters, digits, spaces, and ._- stay.
+     */
+    private static function issuer(string $issuer): string
+    {
+        $issuer = preg_replace('/[^A-Za-z0-9 ._-]+/', ' ', $issuer) ?? '';
+        $issuer = trim(preg_replace('/\s+/', ' ', $issuer) ?? '');
+
+        return $issuer !== '' ? $issuer : 'Office';
     }
 
     private static function code(string $secret, int $slice): string

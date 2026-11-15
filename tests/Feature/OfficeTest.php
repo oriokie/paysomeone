@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\LegacyWriteBlocked;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\MpesaPayout;
 use App\Models\Order;
 use App\Models\OrderBid;
 use App\Models\PaymentRequest;
+use App\Models\RecoveryCode;
 use App\Services\Office\Totp;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,6 +33,99 @@ class OfficeTest extends TestCase
 
         $this->assertTrue((bool) $writer->fresh()->two_factor_enabled);
         $this->get('/office')->assertOk();
+    }
+
+    #[Test]
+    public function the_setup_page_shows_a_qr_code_and_the_secret_in_groups_of_four(): void
+    {
+        $writer = $this->staff(Employee::GROUP_WRITER, 'qr-writer@example.test', false);
+
+        $response = $this->actingAs($writer, 'staff')->get('/office/security');
+        $secret = (string) session('office.setup_secret');
+        $grouped = Totp::grouped($secret);
+        $uri = Totp::uri($secret, (string) $writer->email, (string) config('app.name'));
+
+        $response->assertOk()
+            ->assertSee('data:image/svg+xml;base64,', false)
+            ->assertSee($grouped, false)
+            ->assertSee($uri)
+            ->assertDontSee('chart.googleapis.com')
+            ->assertDontSee('api.qrserver.com');
+
+        $this->assertMatchesRegularExpression('/^[A-Z2-7]+$/', $secret);
+        $this->assertStringNotContainsString('=', $secret);
+        $this->assertSame($secret, str_replace(' ', '', $grouped));
+        $this->assertNotSame($secret, $grouped);
+
+        preg_match('/src="(data:image\/svg\+xml;base64,[^"]+)"/', $response->getContent(), $match);
+        $svg = base64_decode(substr($match[1], strlen('data:image/svg+xml;base64,')), true);
+        $this->assertIsString($svg);
+        $this->assertStringStartsWith('<svg', ltrim($svg));
+    }
+
+    #[Test]
+    public function office_two_factor_can_be_skipped_when_the_flag_is_off(): void
+    {
+        config(['office.two_factor_required' => false]);
+        $writer = $this->staff(Employee::GROUP_WRITER, 'skip-2fa@example.test', false);
+
+        $this->post('/office/login', [
+            'email' => $writer->email,
+            'password' => 'long-enough-password',
+        ])->assertRedirect(route('office.home'));
+
+        $this->assertTrue((bool) session('office.2fa'));
+        $this->get('/office')->assertOk()->assertSee('Authenticator')->assertSee(route('office.setup'), false);
+
+        $this->actingAs($writer, 'staff')->withSession(['office.2fa' => false])
+            ->get('/office')
+            ->assertOk();
+    }
+
+    #[Test]
+    public function office_two_factor_stays_required_when_the_flag_is_on(): void
+    {
+        config(['office.two_factor_required' => true]);
+        $writer = $this->staff(Employee::GROUP_WRITER, 'require-2fa@example.test', false);
+
+        $this->post('/office/login', [
+            'email' => $writer->email,
+            'password' => 'long-enough-password',
+        ])->assertRedirect(route('office.setup'));
+
+        $this->assertFalse((bool) session('office.2fa'));
+        $this->actingAs($writer, 'staff')->get('/office')->assertRedirect(route('office.setup'));
+    }
+
+    #[Test]
+    public function confirming_two_factor_during_a_read_only_preview_verifies_the_session_only(): void
+    {
+        $writer = $this->staff(Employee::GROUP_ADMIN, 'readonly-2fa@example.test', false);
+        config(['legacy.read_only' => true]);
+        $this->actingAs($writer, 'staff')->get('/office/security')->assertOk();
+        $secret = (string) session('office.setup_secret');
+
+        $this->post('/office/security', ['code' => Totp::at($secret)])
+            ->assertRedirect('/office')
+            ->assertSessionHas('office.2fa', true);
+
+        $fresh = $writer->fresh();
+        $this->assertFalse((bool) $fresh->two_factor_enabled);
+        $this->assertSame('JBSWY3DPEHPK3PXP', (string) $fresh->two_factor_gsecret);
+        $this->assertSame(8, RecoveryCode::query()->where('employee_id', $writer->employee_id)->count());
+
+        $this->get('/office')
+            ->assertOk()
+            ->assertSee('Two-factor works for this session only while the preview is read-only.');
+        $this->get('/office/security')->assertOk()->assertSee('Recovery codes');
+
+        try {
+            $fresh->first_name = 'Blocked';
+            $fresh->save();
+            $this->fail('The legacy write guard should still refuse a prox_employee update.');
+        } catch (LegacyWriteBlocked) {
+            $this->assertNotSame('Blocked', $writer->fresh()->first_name);
+        }
     }
 
     #[Test]

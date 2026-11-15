@@ -21,6 +21,10 @@ class RequireStaffTwoFactor
             return redirect()->route('office.login')->withErrors(['email' => 'This account is suspended.']);
         }
 
+        if (! config('office.two_factor_required', true)) {
+            return $next($request);
+        }
+
         if (! session('office.2fa')) {
             return redirect()->route($staff->two_factor_enabled ? 'office.challenge' : 'office.setup');
         }

@@ -64,7 +64,10 @@
             @endif
             <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/70 bg-app/90 px-4 backdrop-blur lg:px-8">
                 <h1 class="font-display text-lg tracking-tight text-navy">@yield('heading', 'Office')</h1>
-                <span class="text-[13px] text-slate-500 lg:hidden">{{ $role }}</span>
+                <div class="flex items-center gap-4">
+                    <a class="text-[13px] font-medium text-slate-500 hover:text-navy" href="{{ route('office.setup') }}">Authenticator</a>
+                    <span class="text-[13px] text-slate-500 lg:hidden">{{ $role }}</span>
+                </div>
             </header>
             <main id="content" class="mx-auto max-w-[1200px] px-4 py-8 pb-28 lg:px-8">
                 @yield('content')

@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Office;
 
+use App\Exceptions\LegacyWriteBlocked;
 use App\Models\Employee;
 use App\Models\RecoveryCode;
 use App\Models\StaffDevice;
+use App\Services\Desk\OutboundMail;
 use App\Services\Office\Auditor;
 use App\Services\Office\Totp;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +54,7 @@ class SessionController extends OfficeController
         try {
             $staff->last_login = now();
             $staff->save();
-        } catch (\App\Exceptions\LegacyWriteBlocked) {
+        } catch (LegacyWriteBlocked) {
             // A read-only preview can still sign in. The stored last-login time stays as it is.
         }
         StaffDevice::query()->create([
@@ -60,7 +64,7 @@ class SessionController extends OfficeController
             'created_at' => now(),
         ]);
         Auditor::write($staff, 'auth.login');
-        app(\App\Services\Desk\OutboundMail::class)->send(
+        app(OutboundMail::class)->send(
             (string) $staff->email,
             'New sign-in to the office',
             'New sign-in to the office',
@@ -71,6 +75,12 @@ class SessionController extends OfficeController
             true,
         );
         session()->forget('office.2fa');
+
+        if (! config('office.two_factor_required', true)) {
+            session(['office.2fa' => true]);
+
+            return redirect()->route('office.home');
+        }
 
         return redirect()->route($staff->two_factor_enabled ? 'office.challenge' : 'office.setup');
     }
@@ -83,11 +93,14 @@ class SessionController extends OfficeController
             $secret = Totp::secret();
             session(['office.setup_secret' => $secret]);
         }
+        $uri = Totp::uri($secret, (string) $staff->email, (string) config('app.name'));
 
         return view('office.security', [
             'mode' => 'setup',
             'secret' => $secret,
-            'uri' => Totp::uri($secret, (string) $staff->email, (string) config('app.name')),
+            'grouped' => Totp::grouped($secret),
+            'uri' => $uri,
+            'qr' => $this->qrDataUri($uri),
             'codes' => session('office.recovery_plain', []),
         ]);
     }
@@ -114,7 +127,14 @@ class SessionController extends OfficeController
         $staff->two_factor_enabled = 1;
         $staff->two_factor_type = 'google';
         $staff->two_factor_gsecret = $secret;
-        $staff->save();
+        try {
+            $staff->save();
+            $status = 'Two-factor sign-in is on. Save the recovery codes shown once on this page.';
+        } catch (LegacyWriteBlocked) {
+            // prox_employee cannot be updated while the preview is read-only.
+            // The session and the app_ recovery codes still stand.
+            $status = 'Two-factor works for this session only while the preview is read-only. Save the recovery codes shown on the security page.';
+        }
         session()->forget('office.setup_secret');
         session([
             'office.2fa' => true,
@@ -123,7 +143,7 @@ class SessionController extends OfficeController
         ]);
         Auditor::write($staff, 'auth.2fa_enabled');
 
-        return redirect()->route('office.home')->with('status', 'Two-factor sign-in is on. Save the recovery codes shown once on this page.');
+        return redirect()->route('office.home')->with('status', $status);
     }
 
     public function challenge(Request $request): View
@@ -172,5 +192,13 @@ class SessionController extends OfficeController
         $request->session()->regenerateToken();
 
         return redirect()->route('office.login');
+    }
+
+    private function qrDataUri(string $uri): string
+    {
+        return (new QRCode(new QROptions([
+            'outputBase64' => true,
+            'svgAddXmlHeader' => false,
+        ])))->render($uri);
     }
 }
